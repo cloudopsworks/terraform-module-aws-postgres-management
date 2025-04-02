@@ -5,7 +5,9 @@
 #
 
 resource "postgresql_grant" "user_connect" {
-  for_each    = var.users
+  for_each = {
+    for key, user in var.users : key => user if try(user.grant, "") != "owner"
+  }
   database    = try(each.value.db_ref, "") != "" ? var.databases[each.value.db_ref].name : each.value.database_name
   role        = postgresql_role.user[each.key].name
   object_type = "database"

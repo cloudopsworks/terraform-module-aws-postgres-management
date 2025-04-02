@@ -23,7 +23,9 @@ resource "postgresql_grant" "user_all_db" {
   database    = try(each.value.db_ref, "") != "" ? var.databases[each.value.db_ref].name : each.value.database_name
   role        = postgresql_role.user[each.key].name
   object_type = "database"
-  privileges  = ["ALL"]
+  privileges = [
+    "ALL"
+  ]
 }
 
 resource "postgresql_grant" "user_all_schema" {
