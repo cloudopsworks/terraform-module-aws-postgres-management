@@ -11,5 +11,14 @@ terraform {
     aws = {
       source = "hashicorp/aws"
     }
+    postgresql = {
+      source = "cyrilgdn/postgresql"
+    }
+    random = {
+      source = "hashicorp/random"
+    }
+    time = {
+      source = "hashicorp/time"
+    }
   }
 }
