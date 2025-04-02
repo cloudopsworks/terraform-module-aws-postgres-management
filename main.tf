@@ -57,7 +57,7 @@ resource "postgresql_grant_role" "owner" {
     for key, db in var.databases : key => db if try(db.create_owner, false)
   }
   grant_role = postgresql_role.owner[each.key].name
-  role       = each.value.admin_user
+  role       = local.psql.admin_user
 }
 
 resource "postgresql_grant_role" "provided_owner" {
@@ -65,6 +65,6 @@ resource "postgresql_grant_role" "provided_owner" {
     for key, db in var.databases : key => db if !try(db.create_owner, false)
   }
   grant_role = each.value.owner
-  role       = each.value.admin_user
+  role       = local.psql.admin_user
 }
 

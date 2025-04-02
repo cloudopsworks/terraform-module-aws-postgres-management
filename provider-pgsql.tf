@@ -31,7 +31,7 @@ locals {
     port       = try(var.hoop.port, 5433)
     username   = try(var.hoop.username, "noop")
     password   = try(var.hoop.password, "noop")
-    sslmode    = try(var.hoop.sslmode, "prefer")
+    sslmode    = try(var.hoop.sslmode, "disable")
     admin_user = var.hoop.admin_user
     db_name    = var.hoop.db_name
     superuser  = try(var.hoop.superuser, false)
