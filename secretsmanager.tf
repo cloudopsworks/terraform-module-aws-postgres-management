@@ -4,11 +4,11 @@
 #            Distributed Under Apache v2.0 License
 #
 
-# Secrets saving
-resource "aws_secretsmanager_secret" "sample" {
-  name = "${local.secret_store_path}/sample/password"
-  tags = local.all_tags
-}
+# # Secrets saving
+# resource "aws_secretsmanager_secret" "sample" {
+#   name = "${local.secret_store_path}/sample/password"
+#   tags = local.all_tags
+# }
 
 # resource "aws_secretsmanager_secret_version" "sample" {
 #   secret_id     = aws_secretsmanager_secret.sample.id
