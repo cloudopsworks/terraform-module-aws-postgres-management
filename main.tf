@@ -55,14 +55,6 @@ resource "postgresql_role" "owner" {
   login = true
 }
 
-# resource "postgresql_grant_role" "owner" {
-#   for_each = {
-#     for key, db in var.databases : key => db if try(db.create_owner, false)
-#   }
-#   grant_role = postgresql_role.owner[each.key].name
-#   role       = local.psql.admin_user
-# }
-
 resource "postgresql_grant_role" "provided_owner" {
   for_each = {
     for key, db in var.databases : key => db if !try(db.create_owner, false)

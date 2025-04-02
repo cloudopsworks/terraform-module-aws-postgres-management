@@ -38,5 +38,5 @@ resource "postgresql_role" "user" {
   connection_limit   = try(each.value.connection_limit, -1)
   inherit            = try(each.value.inherit, null)
   create_role        = try(each.value.create_role, null)
-
+  roles              = try(each.value.grant, "") == "owner" ? local.admin_role[each.key].admin_role : null
 }

@@ -39,11 +39,11 @@ resource "postgresql_grant" "user_all_schema" {
   privileges  = ["ALL"]
 }
 
-resource "postgresql_grant_role" "user_grant_owner" {
-  for_each = {
-    for key, user in var.users : key => user if try(user.grant, "") == "owner"
-  }
-  grant_role = local.admin_role[each.key].admin_role
-  role       = postgresql_role.user[each.key].name
-}
+# resource "postgresql_grant_role" "user_grant_owner" {
+#   for_each = {
+#     for key, user in var.users : key => user if try(user.grant, "") == "owner"
+#   }
+#   grant_role =
+#   role       = postgresql_role.user[each.key].name
+# }
 
