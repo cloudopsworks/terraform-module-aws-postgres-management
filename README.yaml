@@ -1,4 +1,4 @@
-name: Terraform Transit Gateway Module
+name: Terraform Module for AWS RDS PostgreSQL database and User Management
 #logo: logo/logo.jpg
 
 license: "APACHE2"
@@ -8,23 +8,80 @@ copyrights:
     url: "https://cloudops.works"
     year: "2024"
 
-github_repo: cloudopsworks/terraform-module-aws-vpc-setup
+github_repo: cloudopsworks/terraform-module-aws-postgres-management
 
 description: |-
-  VPC Module for setting up transit gateway with ResourceAccessMananger support.
+  This module manages AWS RDS for PostgreSQL databases and automates user management. 
+  It provides a best-practice approach to creating, modifying, and maintaining 
+  PostgreSQL databases on AWS RDS.
 
 # Introduction to the project
-#introduction: |-
-#  This is an introduction.
+introduction: |-
+  ### Introduction
+  
+  The **Terraform Module for AWS RDS PostgreSQL database and User Management** is designed 
+  to streamline the process of provisioning and maintaining PostgreSQL instances on Amazon RDS. 
+  It offers a variety of configuration parameters for fine-tuning resources to meet different 
+  environment needs, including production, development, and staging.
 
 # How to use this project
-#usage: |-
+usage: |-
+  ### How to Use this Project
+  
+  1. **Add this module as a source** in your Terraform or Terragrunt configuration.
+  2. **Provide the required variables** such as your AWS region, desired engine version, 
+     instance class, database name, username, and more. 
+  3. **Run Terraform/Terragrunt** to deploy or update the PostgreSQL database resources.
+  
+  This module can be integrated into existing infrastructure or used standalone.
 
 # Example usage
-#examples: |-
+examples: |-
+  ### Example Usage
+  
+  Below is a sample Terragrunt configuration snippet that illustrates how to reference 
+  this module. Please note this example uses placeholders for sensitive or environment-specific 
+  values. Adapt as needed for your environment.
+  
+  ```hcl
+  # terragrunt.hcl
+  terraform {
+    source = "git::https://github.com/cloudopsworks/terraform-module-aws-postgres-management.git?ref=develop"
+  }
+  
+  # Common inputs based on local vars
+  inputs = {
+    # Example of overriding default values
+  
+    # Additional tags pulled from local or parent configuration
+    extra_tags = local.tags
+  }
+  ```
+  
+  You can place this `terragrunt.hcl` file in a directory that also contains the relevant 
+  YAML files (e.g., `inputs.yaml`) and any other shared configuration.
+  
+  Refer to your own file structure layout for environment-specific overrides, naming conventions, 
+  and relationships with other modules.
 
 # How to get started quickly
-#quickstart: |-
+quickstart: |-
+  # Quickstart
+  
+  1. **Install Terragrunt** (and Terraform) on your machine.  
+  2. **Clone or reference** this repository in your local Terragrunt configuration.  
+  3. **Create or update** the `terragrunt.hcl` file to point to the correct source and set 
+     required inputs.  
+  4. **Run**:
+     ```bash
+     terragrunt init
+     terragrunt plan
+     terragrunt apply
+     ```
+  5. **Verify** that the PostgreSQL database has been provisioned successfully in AWS.  
+  
+  By following these steps, you will have a running Amazon RDS for PostgreSQL instance with 
+  the specified configuration, complete with recommended tags and parameters.
 
 include:
   - "docs/targets.md"
