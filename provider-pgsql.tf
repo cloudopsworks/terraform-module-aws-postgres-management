@@ -28,7 +28,7 @@ locals {
     engine      = data.aws_db_instance.db[0].engine
     password    = local.from_secret["password"]
     db_name     = data.aws_db_instance.db[0].db_name
-    sslmode     = try(var.rds.sslmode, "required")
+    sslmode     = try(var.rds.sslmode, "require")
     superuser   = try(var.rds.superuser, false)
   } : {}
   rds_psql_c = try(var.rds.enabled, false) && try(var.rds.cluster, false) ? {
@@ -40,7 +40,7 @@ locals {
     engine      = data.aws_rds_cluster.db[0].engine
     password    = local.from_secret["password"]
     db_name     = data.aws_rds_cluster.db[0].database_name
-    sslmode     = try(var.rds.sslmode, "required")
+    sslmode     = try(var.rds.sslmode, "require")
     superuser   = try(var.rds.superuser, false)
   } : {}
   hoop_psql = local.hoop_connect ? {
