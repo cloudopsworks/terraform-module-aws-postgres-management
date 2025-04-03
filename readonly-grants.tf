@@ -8,7 +8,7 @@ resource "postgresql_default_privileges" "user_ro_tab_def_priv" {
   for_each = {
     for key, user in var.users : key => user if try(user.grant, "") == "readonly"
   }
-  database    = try(each.value.db_ref, "") != "" ? var.databases[each.value.db_ref].name : each.value.database_name
+  database    = try(each.value.db_ref, "") != "" ? postgresql_database.this[each.value.db_ref].name : each.value.database_name
   role        = postgresql_role.user[each.key].name
   owner       = "DEFAULT"
   object_type = "table"
@@ -23,7 +23,7 @@ resource "postgresql_grant" "user_ro_tab_def_priv" {
   for_each = {
     for key, user in var.users : key => user if try(user.grant, "") == "readonly"
   }
-  database    = try(each.value.db_ref, "") != "" ? var.databases[each.value.db_ref].name : each.value.database_name
+  database    = try(each.value.db_ref, "") != "" ? postgresql_database.this[each.value.db_ref].name : each.value.database_name
   role        = postgresql_role.user[each.key].name
   object_type = "table"
   schema      = try(each.value.schema, "public")
