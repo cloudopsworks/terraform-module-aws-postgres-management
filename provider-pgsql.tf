@@ -9,14 +9,14 @@ locals {
   from_secret  = try(var.rds.enabled, false) || try(var.rds.from_secret, false) ? jsondecode(data.aws_secretsmanager_secret_version.db_password[0].secret_string) : {}
   rds_secret_psql = try(var.rds.from_secret, false) ? {
     server_name = try(var.rds.server_name, "") != "" ? var.rds.server_name : try(local.from_secret["dbInstanceIdentifier"], local.from_secret["dbClusterIdentifier"])
-    host        = local.from_secret["host"]
-    port        = local.from_secret["port"]
-    username    = local.from_secret["username"]
-    admin_user  = local.from_secret["username"]
+    host        = nonsensitive(local.from_secret["host"])
+    port        = nonsensitive(local.from_secret["port"])
+    username    = nonsensitive(local.from_secret["username"])
+    admin_user  = nonsensitive(local.from_secret["username"])
     password    = local.from_secret["password"]
-    engine      = local.from_secret["engine"]
-    db_name     = local.from_secret["dbname"]
-    sslmode     = local.from_secret["sslmode"]
+    engine      = nonsensitive(local.from_secret["engine"])
+    db_name     = nonsensitive(local.from_secret["dbname"])
+    sslmode     = nonsensitive(try(local.from_secret["sslmode"], "require"))
     superuser   = try(var.rds.superuser, false)
   } : {}
   rds_psql = try(var.rds.enabled, false) && !try(var.rds.cluster, false) ? {
