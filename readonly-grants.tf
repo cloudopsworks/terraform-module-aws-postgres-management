@@ -10,7 +10,7 @@ resource "postgresql_default_privileges" "user_ro_tab_def_priv" {
   }
   database    = try(each.value.db_ref, "") != "" ? postgresql_database.this[each.value.db_ref].name : each.value.database_name
   role        = postgresql_role.user[each.key].name
-  owner       = "DEFAULT"
+  owner       = local.admin_role[each.key].admin_role
   object_type = "table"
   schema      = try(each.value.schema, "public")
   privileges = [

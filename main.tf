@@ -5,8 +5,8 @@
 #
 
 resource "postgresql_database" "this" {
-  for_each               = var.databases
-  name                   = each.value.name
+  for_each = var.databases
+  name     = each.value.name
   owner                  = try(each.value.create_owner, false) ? postgresql_role.owner[each.key].name : each.value.owner
   lc_collate             = try(each.value.collate, null)
   lc_ctype               = try(each.value.ctype, null)
@@ -49,9 +49,9 @@ resource "postgresql_role" "owner" {
   }
   name     = "${each.value.name}_ow"
   password = random_password.owner[each.key].result
-  roles = [
-    local.psql.admin_user
-  ]
+  # roles = [
+  #   local.psql.admin_user
+  # ]
   login = true
 }
 

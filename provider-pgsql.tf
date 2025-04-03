@@ -76,12 +76,13 @@ locals {
 }
 
 provider "postgresql" {
-  host            = local.psql.host
-  port            = local.psql.port
-  username        = local.psql.username
-  password        = local.psql.password
-  database        = local.psql.db_name
-  sslmode         = local.psql.sslmode
-  connect_timeout = 15
-  superuser       = local.psql.superuser
+  host              = local.psql.host
+  port              = local.psql.port
+  username          = local.psql.username
+  password          = local.psql.password
+  database          = local.psql.db_name
+  database_username = local.psql.admin_user
+  sslmode           = local.psql.sslmode
+  connect_timeout   = 15
+  superuser         = local.psql.superuser
 }

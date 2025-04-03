@@ -19,7 +19,7 @@ resource "postgresql_default_privileges" "user_tab_def_priv" {
   for_each = {
     for key, user in var.users : key => user if try(user.grant, "") == "readwrite"
   }
-  depends_on = [postgresql_database.this]
+  depends_on  = [postgresql_database.this]
   database    = try(each.value.db_ref, "") != "" ? postgresql_database.this[each.value.db_ref].name : each.value.database_name
   role        = postgresql_role.user[each.key].name
   owner       = local.admin_role[each.key].admin_role
@@ -39,7 +39,7 @@ resource "postgresql_grant" "user_tab_def_priv" {
   for_each = {
     for key, user in var.users : key => user if try(user.grant, "") == "readwrite"
   }
-  depends_on = [postgresql_database.this]
+  depends_on  = [postgresql_database.this]
   database    = try(each.value.db_ref, "") != "" ? postgresql_database.this[each.value.db_ref].name : each.value.database_name
   role        = postgresql_role.user[each.key].name
   object_type = "table"
@@ -58,7 +58,7 @@ resource "postgresql_default_privileges" "user_seq_def_priv" {
   for_each = {
     for key, user in var.users : key => user if try(user.grant, "") == "readwrite"
   }
-  depends_on = [postgresql_database.this]
+  depends_on  = [postgresql_database.this]
   database    = try(each.value.db_ref, "") != "" ? postgresql_database.this[each.value.db_ref].name : each.value.database_name
   role        = postgresql_role.user[each.key].name
   owner       = local.admin_role[each.key].admin_role
@@ -74,7 +74,7 @@ resource "postgresql_grant" "user_seq_def_priv" {
   for_each = {
     for key, user in var.users : key => user if try(user.grant, "") == "readwrite"
   }
-  depends_on = [postgresql_database.this]
+  depends_on  = [postgresql_database.this]
   database    = try(each.value.db_ref, "") != "" ? postgresql_database.this[each.value.db_ref].name : each.value.database_name
   role        = postgresql_role.user[each.key].name
   object_type = "sequence"
@@ -89,7 +89,7 @@ resource "postgresql_default_privileges" "user_func_def_priv" {
   for_each = {
     for key, user in var.users : key => user if try(user.grant, "") == "readwrite"
   }
-  depends_on = [postgresql_database.this]
+  depends_on  = [postgresql_database.this]
   database    = try(each.value.db_ref, "") != "" ? postgresql_database.this[each.value.db_ref].name : each.value.database_name
   role        = postgresql_role.user[each.key].name
   owner       = local.admin_role[each.key].admin_role
@@ -104,7 +104,7 @@ resource "postgresql_grant" "user_func_def_priv" {
   for_each = {
     for key, user in var.users : key => user if try(user.grant, "") == "readwrite"
   }
-  depends_on = [postgresql_database.this]
+  depends_on  = [postgresql_database.this]
   database    = try(each.value.db_ref, "") != "" ? postgresql_database.this[each.value.db_ref].name : each.value.database_name
   role        = postgresql_role.user[each.key].name
   object_type = "function"
