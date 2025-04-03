@@ -7,12 +7,12 @@ data "aws_region" "current" {}
 
 data "aws_db_instance" "db" {
   count                  = try(var.rds.enabled, false) && !try(var.rds.cluster, false) ? 1 : 0
-  db_instance_identifier = try(var.rds.name, local.from_secret["dbInstanceIdentifier"])
+  db_instance_identifier = nonsensitive(try(var.rds.name, local.from_secret["dbInstanceIdentifier"]))
 }
 
 data "aws_rds_cluster" "db" {
   count              = try(var.rds.enabled, false) && try(var.rds.cluster, false) ? 1 : 0
-  cluster_identifier = try(var.rds.name, local.from_secret["dbClusterIdentifier"])
+  cluster_identifier = nonsensitive(try(var.rds.name, local.from_secret["dbClusterIdentifier"]))
 }
 
 data "aws_db_instance" "hoop_db_server" {

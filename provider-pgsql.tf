@@ -8,7 +8,7 @@ locals {
   hoop_connect = try(var.hoop.enabled, false) && try(var.hoop.connection_name, "") != ""
   from_secret  = try(var.rds.enabled, false) || try(var.rds.from_secret, false) ? jsondecode(data.aws_secretsmanager_secret_version.db_password[0].secret_string) : {}
   rds_secret_psql = try(var.rds.from_secret, false) ? {
-    server_name = try(var.rds.server_name, "") != "" ? var.rds.server_name : try(local.from_secret["dbInstanceIdentifier"], local.from_secret["dbClusterIdentifier"])
+    server_name = nonsensitive(try(var.rds.server_name, "") != "" ? var.rds.server_name : try(local.from_secret["dbInstanceIdentifier"], local.from_secret["dbClusterIdentifier"]))
     host        = nonsensitive(local.from_secret["host"])
     port        = nonsensitive(local.from_secret["port"])
     username    = nonsensitive(local.from_secret["username"])
