@@ -68,7 +68,7 @@ locals {
     superuser   = try(var.direct.superuser, false)
   } : null
   psql = merge(
-    local.direct_psql
+    local.direct_psql,
     local.hoop_psql,
     local.rds_secret_psql,
     local.rds_psql,
