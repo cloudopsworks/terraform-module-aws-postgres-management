@@ -38,16 +38,16 @@ resource "aws_secretsmanager_secret_version" "owner" {
   secret_string = jsonencode({
     username = postgresql_role.owner[each.key].name
     password = random_password.owner[each.key].result
-    host = try(var.hoop.enabled, false) ? (
+    host = local.hoop_connect ? (
       try(var.hoop.cluster, false) ? data.aws_rds_cluster.hoop_db_server[0].endpoint :
       data.aws_db_instance.hoop_db_server[0].endpoint
     ) : local.psql.host
-    port = try(var.hoop.enabled, false) ? (
+    port = local.hoop_connect ? (
       try(var.hoop.cluster, false) ? data.aws_rds_cluster.hoop_db_server[0].port :
       data.aws_db_instance.hoop_db_server[0].port
     ) : local.psql.port
     db_name = postgresql_database.this[each.key].name
-    sslmode = try(var.hoop.enabled, false) ? var.hoop.default_sslmode : local.psql.sslmode
+    sslmode = local.hoop_connect ? var.hoop.default_sslmode : local.psql.sslmode
     engine  = local.psql.engine
   })
 }
@@ -82,16 +82,16 @@ resource "aws_secretsmanager_secret_version" "user" {
   secret_string = jsonencode({
     username = postgresql_role.user[each.key].name
     password = random_password.user[each.key].result
-    host = try(var.hoop.enabled, false) ? (
+    host = local.hoop_connect ? (
       try(var.hoop.cluster, false) ? data.aws_rds_cluster.hoop_db_server[0].endpoint :
       data.aws_db_instance.hoop_db_server[0].endpoint
     ) : local.psql.host
-    port = try(var.hoop.enabled, false) ? (
+    port = local.hoop_connect ? (
       try(var.hoop.cluster, false) ? data.aws_rds_cluster.hoop_db_server[0].port :
       data.aws_db_instance.hoop_db_server[0].port
     ) : local.psql.port
     db_name = try(each.value.db_ref, "") != "" ? postgresql_database.this[each.value.db_ref].name : each.value.database_name
-    sslmode = try(var.hoop.enabled, false) ? var.hoop.default_sslmode : local.psql.sslmode
+    sslmode = local.hoop_connect ? var.hoop.default_sslmode : local.psql.sslmode
     engine  = local.psql.engine
   })
 }

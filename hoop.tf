@@ -4,3 +4,42 @@
 #            Distributed Under Apache v2.0 License
 #
 
+locals {
+  hoop_tags = length(try(var.hoop.tags, [])) > 0 ? join(" ", [for v in var.hoop.tags : "--tags \"${v}\""]) : ""
+}
+
+output "hoop_connection_owners" {
+  value = try(var.hoop.enabled, false) && strcontains(local.psql.engine, "postgres") ? [
+    for key, db in var.databases : <<EOT
+hoop admin create connection ${local.psql.server_name}-${postgresql_database.this[key].name}-ow \
+  --agent ${var.hoop.agent} \
+  --type database/postgres \
+  -e "HOST=_aws:${aws_secretsmanager_secret.owner[key].name}:host" \
+  -e "PORT=_aws:${aws_secretsmanager_secret.owner[key].name}:port" \
+  -e "USER=_aws:${aws_secretsmanager_secret.owner[key].name}:username" \
+  -e "PASS=_aws:${aws_secretsmanager_secret.owner[key].name}:password" \
+  -e "DB=_aws:${aws_secretsmanager_secret.owner[key].name}:dbname" \
+  -e "SSLMODE=prefer" \
+  --overwrite
+  ${local.hoop_tags}
+EOT
+  ] : null
+}
+
+output "hoop_connection_users" {
+  value = try(var.hoop.enabled, false) && strcontains(local.psql.engine, "postgres") ? [
+    for key, role_user in postgresql_role.user : <<EOT
+hoop admin create connection ${local.psql.server_name}-${(try(var.users[key].db_ref, "") != "" ? postgresql_database.this[var.users[key].db_ref].name : var.users[key].database_name)}-${role_user.name} \
+  --agent ${var.hoop.agent} \
+  --type database/postgres \
+  -e "HOST=_aws:${aws_secretsmanager_secret.user[key].name}:host" \
+  -e "PORT=_aws:${aws_secretsmanager_secret.user[key].name}:port" \
+  -e "USER=_aws:${aws_secretsmanager_secret.user[key].name}:username" \
+  -e "PASS=_aws:${aws_secretsmanager_secret.user[key].name}:password" \
+  -e "DB=_aws:${aws_secretsmanager_secret.user[key].name}:dbname" \
+  -e "SSLMODE=prefer" \
+  --overwrite
+  ${local.hoop_tags}
+EOT
+  ] : null
+}
