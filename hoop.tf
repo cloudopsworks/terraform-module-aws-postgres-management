@@ -8,9 +8,6 @@ locals {
   hoop_tags = length(try(var.hoop.tags, [])) > 0 ? join(" ", [for v in var.hoop.tags : "--tags \"${v}\""]) : ""
 }
 
-
-
-
 output "hoop_connection_owners" {
   value = try(var.hoop.enabled, false) && strcontains(local.psql.engine, "postgres") ? [
     for key, db in var.databases : <<EOT
@@ -23,7 +20,7 @@ hoop admin create connection ${local.psql.server_name}-${postgresql_database.thi
   -e "PASS=_aws:${aws_secretsmanager_secret.owner[key].name}:password" \
   -e "DB=_aws:${aws_secretsmanager_secret.owner[key].name}:dbname" \
   -e "SSLMODE=prefer" \
-  --overwrite \
+  --overwrite
   ${local.hoop_tags}
 EOT
   ] : null
@@ -41,7 +38,7 @@ hoop admin create connection ${local.psql.server_name}-${(try(user.db_ref, "") !
   -e "PASS=_aws:${aws_secretsmanager_secret.user[key].name}:password" \
   -e "DB=_aws:${aws_secretsmanager_secret.user[key].name}:dbname" \
   -e "SSLMODE=prefer" \
-  --overwrite \
+  --overwrite
   ${local.hoop_tags}
 EOT
   ] : null
