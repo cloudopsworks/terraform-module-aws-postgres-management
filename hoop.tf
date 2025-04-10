@@ -6,10 +6,7 @@
 
 locals {
   hoop_tags = length(try(var.hoop.tags, [])) > 0 ? join(" ", [for v in var.hoop.tags : "--tags \"${v}\""]) : ""
-}
-
-output "hoop_connection_owners" {
-  value = try(var.hoop.enabled, false) && strcontains(local.psql.engine, "postgres") ? [
+  hoop_connection_owners = try(var.hoop.enabled, false) && strcontains(local.psql.engine, "postgres") ? [
     for key, db in var.databases : <<EOT
 hoop admin create connection ${local.psql.server_name}-${postgresql_database.this[key].name}-ow \
   --agent ${var.hoop.agent} \
@@ -24,10 +21,7 @@ hoop admin create connection ${local.psql.server_name}-${postgresql_database.thi
   ${local.hoop_tags}
 EOT
   ] : null
-}
-
-output "hoop_connection_users" {
-  value = try(var.hoop.enabled, false) && strcontains(local.psql.engine, "postgres") ? [
+  hoop_connection_users = try(var.hoop.enabled, false) && strcontains(local.psql.engine, "postgres") ? [
     for key, role_user in postgresql_role.user : <<EOT
 hoop admin create connection ${local.psql.server_name}-${(try(var.users[key].db_ref, "") != "" ? postgresql_database.this[var.users[key].db_ref].name : var.users[key].database_name)}-${role_user.name} \
   --agent ${var.hoop.agent} \
@@ -42,4 +36,28 @@ hoop admin create connection ${local.psql.server_name}-${(try(var.users[key].db_
   ${local.hoop_tags}
 EOT
   ] : null
+}
+
+resource "null_resource" "hoop_connection_owners" {
+  for_each = local.hoop_connection_owners
+  provisioner "local-exec" {
+    command     = each.value
+    interpreter = ["bash", "-c"]
+  }
+}
+
+output "hoop_connection_owners" {
+  value = local.hoop_connection_owners
+}
+
+resource "null_resource" "hoop_connection_users" {
+  for_each = local.hoop_connection_users
+  provisioner "local-exec" {
+    command     = each.value
+    interpreter = ["bash", "-c"]
+  }
+}
+
+output "hoop_connection_users" {
+  value = local.hoop_connection_users
 }
