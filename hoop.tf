@@ -39,7 +39,10 @@ EOT
 }
 
 resource "null_resource" "hoop_connection_owners" {
-  for_each = local.hoop_connection_owners
+  for_each = {
+    for k, v in local.hoop_connection_owners : k => v
+    if var.run_hoop
+  }
   provisioner "local-exec" {
     command     = each.value
     interpreter = ["bash", "-c"]
@@ -51,7 +54,10 @@ output "hoop_connection_owners" {
 }
 
 resource "null_resource" "hoop_connection_users" {
-  for_each = local.hoop_connection_users
+  for_each = {
+    for k, v in local.hoop_connection_users : k => v
+    if var.run_hoop
+  }
   provisioner "local-exec" {
     command     = each.value
     interpreter = ["bash", "-c"]
