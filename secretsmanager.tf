@@ -66,6 +66,7 @@ resource "aws_secretsmanager_secret" "user" {
     replace(postgresql_role.user[each.key].name, "_", "-")
   )
   description = "RDS User Credentials - ${postgresql_role.user[each.key].name} - Grants: ${each.value.grant} - ${local.psql.engine} - ${local.psql.server_name}"
+  kms_key_id  = var.secrets_kms_key_id
   tags = merge(local.all_tags, {
     "rds-username" = postgresql_role.user[each.key].name
     "rds-datatabase-name" = (try(each.value.db_ref, "") != "" ?
@@ -91,7 +92,7 @@ resource "aws_secretsmanager_secret_version" "user" {
         try(var.hoop.cluster, false) ? data.aws_rds_cluster.hoop_db_server[0].port :
         data.aws_db_instance.hoop_db_server[0].port
       ) : local.psql.port
-      dbname = try(each.value.db_ref, "") != "" ? postgresql_database.this[each.value.db_ref].name : each.value.database_name
+      dbname  = try(each.value.db_ref, "") != "" ? postgresql_database.this[each.value.db_ref].name : each.value.database_name
       sslmode = local.hoop_connect ? var.hoop.default_sslmode : local.psql.sslmode
       engine  = local.psql.engine
     },
@@ -102,3 +103,17 @@ resource "aws_secretsmanager_secret_version" "user" {
   )
 }
 
+data "aws_lambda_function" "rotation_function" {
+  function_name = var.rotation_lambda_name
+}
+
+resource "aws_secretsmanager_secret_rotation" "user" {
+  for_each            = var.users
+  secret_id           = aws_secretsmanager_secret.user[each.key].id
+  rotation_lambda_arn = data.aws_lambda_function.rotation_function.arn
+
+  rotation_rules {
+    automatically_after_days = var.password_rotation_period
+    duration                 = var.rotation_duration
+  }
+}
