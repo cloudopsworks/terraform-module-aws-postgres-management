@@ -5,10 +5,10 @@
 #
 
 # # Secrets saving
-# resource "aws_secretsmanager_secret" "sample" {
-#   name = "${local.secret_store_path}/sample/password"
-#   tags = local.all_tags
-# }
+data "aws_lambda_function" "rotation_function" {
+  count         = var.rotation_lambda_name != "" ? 1 : 0
+  function_name = var.rotation_lambda_name
+}
 
 ## DB OWNER
 resource "aws_secretsmanager_secret" "owner" {
@@ -32,7 +32,7 @@ resource "aws_secretsmanager_secret" "owner" {
 
 resource "aws_secretsmanager_secret_version" "owner" {
   for_each = {
-    for key, db in var.databases : key => db if try(db.create_owner, false)
+    for key, db in var.databases : key => db if try(db.create_owner, false) && var.rotation_lambda_name == ""
   }
   secret_id = aws_secretsmanager_secret.owner[each.key].id
   secret_string = jsonencode({
@@ -52,7 +52,49 @@ resource "aws_secretsmanager_secret_version" "owner" {
   })
 }
 
+resource "aws_secretsmanager_secret_version" "owner_rotated" {
+  for_each = {
+    for key, db in var.databases : key => db if try(db.create_owner, false) && var.rotation_lambda_name != ""
+  }
+  secret_id = aws_secretsmanager_secret.owner[each.key].id
+  secret_string = jsonencode({
+    username = postgresql_role.owner[each.key].name
+    password = random_password.owner[each.key].result
+    host = local.hoop_connect ? (
+      try(var.hoop.cluster, false) ? data.aws_rds_cluster.hoop_db_server[0].endpoint :
+      data.aws_db_instance.hoop_db_server[0].address
+    ) : local.psql.host
+    port = local.hoop_connect ? (
+      try(var.hoop.cluster, false) ? data.aws_rds_cluster.hoop_db_server[0].port :
+      data.aws_db_instance.hoop_db_server[0].port
+    ) : local.psql.port
+    db_name = postgresql_database.this[each.key].name
+    sslmode = local.hoop_connect ? var.hoop.default_sslmode : "require"
+    engine  = local.psql.engine
+  })
+  lifecycle {
+    ignore_changes = [
+      secret_string,
+    ]
+  }
+
+}
+
+resource "aws_secretsmanager_secret_rotation" "owner" {
+  for_each = {
+    for key, db in var.databases : key => db if try(db.create_owner, false) && var.rotation_lambda_name != ""
+  }
+  secret_id           = aws_secretsmanager_secret.owner[each.key].id
+  rotation_lambda_arn = data.aws_lambda_function.rotation_function[0].arn
+  rotation_rules {
+    automatically_after_days = var.password_rotation_period
+    duration                 = var.rotation_duration
+  }
+}
+
+#############
 ## ALL USERS
+#############
 resource "aws_secretsmanager_secret" "user" {
   for_each = var.users
   name = format("%s/%s/%s/%s/%s-rds-credentials",
@@ -136,11 +178,6 @@ resource "aws_secretsmanager_secret_version" "user_rotated" {
       secret_string,
     ]
   }
-}
-
-data "aws_lambda_function" "rotation_function" {
-  count         = var.rotation_lambda_name != "" ? 1 : 0
-  function_name = var.rotation_lambda_name
 }
 
 resource "aws_secretsmanager_secret_rotation" "user" {
