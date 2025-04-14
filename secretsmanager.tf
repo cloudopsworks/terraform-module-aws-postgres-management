@@ -78,7 +78,37 @@ resource "aws_secretsmanager_secret" "user" {
 }
 
 resource "aws_secretsmanager_secret_version" "user" {
-  for_each  = var.users
+  for_each = {
+    for k, v in var.users : k => v if var.rotation_lambda_name == ""
+  }
+  secret_id = aws_secretsmanager_secret.user[each.key].id
+  secret_string = jsonencode(merge(
+    {
+      username = postgresql_role.user[each.key].name
+      password = random_password.user[each.key].result
+      host = local.hoop_connect ? (
+        try(var.hoop.cluster, false) ? data.aws_rds_cluster.hoop_db_server[0].endpoint :
+        data.aws_db_instance.hoop_db_server[0].endpoint
+      ) : local.psql.host
+      port = local.hoop_connect ? (
+        try(var.hoop.cluster, false) ? data.aws_rds_cluster.hoop_db_server[0].port :
+        data.aws_db_instance.hoop_db_server[0].port
+      ) : local.psql.port
+      dbname  = try(each.value.db_ref, "") != "" ? postgresql_database.this[each.value.db_ref].name : each.value.database_name
+      sslmode = local.hoop_connect ? var.hoop.default_sslmode : local.psql.sslmode
+      engine  = local.psql.engine
+    },
+    length(data.aws_secretsmanager_secret.db_password) > 0 ? {
+      masterarn = data.aws_secretsmanager_secret.db_password[0].arn
+    } : {}
+    )
+  )
+}
+
+resource "aws_secretsmanager_secret_version" "user_rotated" {
+  for_each = {
+    for k, v in var.users : k => v if var.rotation_lambda_name != ""
+  }
   secret_id = aws_secretsmanager_secret.user[each.key].id
   secret_string = jsonencode(merge(
     {
@@ -102,9 +132,9 @@ resource "aws_secretsmanager_secret_version" "user" {
     )
   )
   lifecycle {
-    ignore_changes = var.rotation_lambda_name != "" ? [
+    ignore_changes = [
       secret_string,
-    ] : []
+    ]
   }
 }
 
