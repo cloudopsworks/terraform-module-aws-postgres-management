@@ -21,7 +21,7 @@ locals {
   } : {}
   rds_psql = try(var.rds.enabled, false) && !try(var.rds.cluster, false) ? {
     server_name = data.aws_db_instance.db[0].id
-    host        = data.aws_db_instance.db[0].endpoint
+    host        = data.aws_db_instance.db[0].address
     port        = data.aws_db_instance.db[0].port
     username    = data.aws_db_instance.db[0].master_username
     admin_user  = data.aws_db_instance.db[0].master_username

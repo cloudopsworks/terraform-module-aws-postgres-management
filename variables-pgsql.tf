@@ -45,3 +45,21 @@ variable "run_hoop" {
   type        = bool
   default     = false
 }
+
+variable "secrets_kms_key_id" {
+  description = "(optional) KMS Key ID to use to encrypt data in this secret, can be ARN or KMS Alias"
+  type        = string
+  default     = null
+}
+
+variable "rotation_lambda_name" {
+  description = "Name of the lambda function to rotate the password"
+  type        = string
+  default     = ""
+}
+
+variable "rotation_duration" {
+  description = "Duration of the lambda function to rotate the password"
+  type        = string
+  default     = "1h"
+}
