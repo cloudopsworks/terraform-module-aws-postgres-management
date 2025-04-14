@@ -40,7 +40,7 @@ resource "aws_secretsmanager_secret_version" "owner" {
     password = random_password.owner[each.key].result
     host = local.hoop_connect ? (
       try(var.hoop.cluster, false) ? data.aws_rds_cluster.hoop_db_server[0].endpoint :
-      data.aws_db_instance.hoop_db_server[0].endpoint
+      data.aws_db_instance.hoop_db_server[0].address
     ) : local.psql.host
     port = local.hoop_connect ? (
       try(var.hoop.cluster, false) ? data.aws_rds_cluster.hoop_db_server[0].port :
@@ -88,7 +88,7 @@ resource "aws_secretsmanager_secret_version" "user" {
       password = random_password.user[each.key].result
       host = local.hoop_connect ? (
         try(var.hoop.cluster, false) ? data.aws_rds_cluster.hoop_db_server[0].endpoint :
-        data.aws_db_instance.hoop_db_server[0].endpoint
+        data.aws_db_instance.hoop_db_server[0].address
       ) : local.psql.host
       port = local.hoop_connect ? (
         try(var.hoop.cluster, false) ? data.aws_rds_cluster.hoop_db_server[0].port :
@@ -116,7 +116,7 @@ resource "aws_secretsmanager_secret_version" "user_rotated" {
       password = random_password.user[each.key].result
       host = local.hoop_connect ? (
         try(var.hoop.cluster, false) ? data.aws_rds_cluster.hoop_db_server[0].endpoint :
-        data.aws_db_instance.hoop_db_server[0].endpoint
+        data.aws_db_instance.hoop_db_server[0].address
       ) : local.psql.host
       port = local.hoop_connect ? (
         try(var.hoop.cluster, false) ? data.aws_rds_cluster.hoop_db_server[0].port :
