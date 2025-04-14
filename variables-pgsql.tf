@@ -55,7 +55,7 @@ variable "secrets_kms_key_id" {
 variable "rotation_lambda_name" {
   description = "Name of the lambda function to rotate the password"
   type        = string
-  default     = "postgresql-password-rotation"
+  default     = ""
 }
 
 variable "rotation_duration" {

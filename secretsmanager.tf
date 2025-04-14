@@ -101,17 +101,24 @@ resource "aws_secretsmanager_secret_version" "user" {
     } : {}
     )
   )
+  lifecycle {
+    ignore_changes = var.rotation_lambda_name != "" ? [
+      secret_string,
+    ] : []
+  }
 }
 
 data "aws_lambda_function" "rotation_function" {
+  count         = var.rotation_lambda_name != "" ? 1 : 0
   function_name = var.rotation_lambda_name
 }
 
 resource "aws_secretsmanager_secret_rotation" "user" {
-  for_each            = var.users
+  for_each = {
+    for k, v in var.users : k => v if var.rotation_lambda_name != ""
+  }
   secret_id           = aws_secretsmanager_secret.user[each.key].id
-  rotation_lambda_arn = data.aws_lambda_function.rotation_function.arn
-
+  rotation_lambda_arn = data.aws_lambda_function.rotation_function[0].arn
   rotation_rules {
     automatically_after_days = var.password_rotation_period
     duration                 = var.rotation_duration
