@@ -47,7 +47,7 @@ resource "aws_secretsmanager_secret_version" "owner" {
       data.aws_db_instance.hoop_db_server[0].port
     ) : local.psql.port
     db_name = postgresql_database.this[each.key].name
-    sslmode = local.hoop_connect ? var.hoop.default_sslmode : local.psql.sslmode
+    sslmode = local.hoop_connect ? var.hoop.default_sslmode : "require"
     engine  = local.psql.engine
   })
 }
@@ -95,7 +95,7 @@ resource "aws_secretsmanager_secret_version" "user" {
         data.aws_db_instance.hoop_db_server[0].port
       ) : local.psql.port
       dbname  = try(each.value.db_ref, "") != "" ? postgresql_database.this[each.value.db_ref].name : each.value.database_name
-      sslmode = local.hoop_connect ? var.hoop.default_sslmode : local.psql.sslmode
+      sslmode = local.hoop_connect ? var.hoop.default_sslmode : "require"
       engine  = local.psql.engine
     },
     length(data.aws_secretsmanager_secret.db_password) > 0 ? {
@@ -123,7 +123,7 @@ resource "aws_secretsmanager_secret_version" "user_rotated" {
         data.aws_db_instance.hoop_db_server[0].port
       ) : local.psql.port
       dbname  = try(each.value.db_ref, "") != "" ? postgresql_database.this[each.value.db_ref].name : each.value.database_name
-      sslmode = local.hoop_connect ? var.hoop.default_sslmode : local.psql.sslmode
+      sslmode = local.hoop_connect ? var.hoop.default_sslmode : "require"
       engine  = local.psql.engine
     },
     length(data.aws_secretsmanager_secret.db_password) > 0 ? {
