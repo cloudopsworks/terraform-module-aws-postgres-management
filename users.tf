@@ -6,12 +6,16 @@
 
 
 resource "time_rotating" "user" {
-  for_each      = var.users
+  for_each = {
+    for k, user in var.users : k => user if var.rotation_lambda_name == ""
+  }
   rotation_days = var.password_rotation_period
 }
 
 resource "random_password" "user" {
-  for_each         = var.users
+  for_each = {
+    for k, user in var.users : k => user if var.rotation_lambda_name == ""
+  }
   length           = 25
   special          = true
   override_special = "=_-+@~#"
@@ -26,10 +30,23 @@ resource "random_password" "user" {
   }
 }
 
+resource "random_password" "user_initial" {
+  for_each = {
+    for k, user in var.users : k => user if var.rotation_lambda_name != ""
+  }
+  length           = 25
+  special          = true
+  override_special = "=_-+@~#"
+  min_upper        = 2
+  min_special      = 2
+  min_numeric      = 2
+  min_lower        = 2
+}
+
 resource "postgresql_role" "user" {
   for_each           = var.users
   name               = each.value.name
-  password           = random_password.user[each.key].result
+  password           = var.rotation_lambda_name == "" ? random_password.user[each.key].result : random_password.user_initial[each.key].result
   login              = try(each.value.login, true)
   superuser          = try(each.value.superuser, null)
   create_database    = try(each.value.create_database, null)

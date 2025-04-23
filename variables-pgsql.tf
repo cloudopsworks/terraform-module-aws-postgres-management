@@ -63,3 +63,9 @@ variable "rotation_duration" {
   type        = string
   default     = "1h"
 }
+
+variable "rotate_immediately" {
+  description = "Rotate the password immediately"
+  type        = bool
+  default     = false
+}

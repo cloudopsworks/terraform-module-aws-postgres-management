@@ -20,14 +20,14 @@ resource "postgresql_database" "this" {
 
 resource "time_rotating" "owner" {
   for_each = {
-    for key, db in var.databases : key => db if try(db.create_owner, false)
+    for key, db in var.databases : key => db if try(db.create_owner, false) && var.rotation_lambda_name == ""
   }
   rotation_days = var.password_rotation_period
 }
 
 resource "random_password" "owner" {
   for_each = {
-    for key, db in var.databases : key => db if try(db.create_owner, false)
+    for key, db in var.databases : key => db if try(db.create_owner, false) && var.rotation_lambda_name == ""
   }
   length           = 25
   special          = true
@@ -43,16 +43,29 @@ resource "random_password" "owner" {
   }
 }
 
+resource "random_password" "owner_initial" {
+  for_each = {
+    for key, db in var.databases : key => db if try(db.create_owner, false) && var.rotation_lambda_name != ""
+  }
+  length           = 25
+  special          = true
+  override_special = "=_-+@~#"
+  min_upper        = 2
+  min_special      = 2
+  min_numeric      = 2
+  min_lower        = 2
+}
+
 resource "postgresql_role" "owner" {
   for_each = {
     for key, db in var.databases : key => db if try(db.create_owner, false)
   }
-  name     = "${each.value.name}_ow"
-  password = random_password.owner[each.key].result
-  # roles = [
-  #   local.psql.admin_user
-  # ]
-  login = true
+  name               = "${each.value.name}_ow"
+  password           = var.rotation_lambda_name == "" ? random_password.owner[each.key].result : random_password.owner_initial[each.key].result
+  encrypted_password = true
+  create_role        = true
+  superuser          = true
+  login              = true
 }
 
 resource "postgresql_grant_role" "provided_owner" {

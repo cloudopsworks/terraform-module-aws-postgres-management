@@ -46,11 +46,27 @@ resource "aws_secretsmanager_secret_version" "owner" {
       try(var.hoop.cluster, false) ? data.aws_rds_cluster.hoop_db_server[0].port :
       data.aws_db_instance.hoop_db_server[0].port
     ) : local.psql.port
-    dbname = postgresql_database.this[each.key].name
+    dbname  = postgresql_database.this[each.key].name
     sslmode = local.hoop_connect ? var.hoop.default_sslmode : "require"
     engine  = local.psql.engine
   })
 }
+
+data "aws_secretsmanager_secret_versions" "owner_rotated" {
+  for_each = {
+    for key, db in var.databases : key => db if try(db.create_owner, false) && var.rotation_lambda_name != ""
+  }
+  secret_id          = aws_secretsmanager_secret.user[each.key].id
+  include_deprecated = true
+}
+
+data "aws_secretsmanager_secret_version" "owner_rotated" {
+  for_each = {
+    for key, db in var.databases : key => db if try(db.create_owner, false) && var.rotation_lambda_name != "" && length(data.aws_secretsmanager_secret_versions.owner_rotated[key].versions) > 0
+  }
+  secret_id = aws_secretsmanager_secret.user[each.key].id
+}
+
 
 resource "aws_secretsmanager_secret_version" "owner_rotated" {
   for_each = {
@@ -59,7 +75,11 @@ resource "aws_secretsmanager_secret_version" "owner_rotated" {
   secret_id = aws_secretsmanager_secret.owner[each.key].id
   secret_string = jsonencode({
     username = postgresql_role.owner[each.key].name
-    password = random_password.owner[each.key].result
+    password = (
+      length(data.aws_secretsmanager_secret_versions.owner_rotated[each.key].versions) > 0 ?
+      jsondecode(aws_secretsmanager_secret_version.owner_rotated[each.key].secret_string)["password"] :
+      random_password.owner_initial[each.key].result
+    )
     host = local.hoop_connect ? (
       try(var.hoop.cluster, false) ? data.aws_rds_cluster.hoop_db_server[0].endpoint :
       data.aws_db_instance.hoop_db_server[0].address
@@ -68,16 +88,10 @@ resource "aws_secretsmanager_secret_version" "owner_rotated" {
       try(var.hoop.cluster, false) ? data.aws_rds_cluster.hoop_db_server[0].port :
       data.aws_db_instance.hoop_db_server[0].port
     ) : local.psql.port
-    dbname = postgresql_database.this[each.key].name
+    dbname  = postgresql_database.this[each.key].name
     sslmode = local.hoop_connect ? var.hoop.default_sslmode : "require"
     engine  = local.psql.engine
   })
-  lifecycle {
-    ignore_changes = [
-      secret_string,
-    ]
-  }
-
 }
 
 resource "aws_secretsmanager_secret_rotation" "owner" {
@@ -86,6 +100,7 @@ resource "aws_secretsmanager_secret_rotation" "owner" {
   }
   secret_id           = aws_secretsmanager_secret.owner[each.key].id
   rotation_lambda_arn = data.aws_lambda_function.rotation_function[0].arn
+  rotate_immediately  = var.rotate_immediately
   rotation_rules {
     automatically_after_days = var.password_rotation_period
     duration                 = var.rotation_duration
@@ -147,6 +162,21 @@ resource "aws_secretsmanager_secret_version" "user" {
   )
 }
 
+data "aws_secretsmanager_secret_versions" "user_rotated" {
+  for_each = {
+    for k, v in var.users : k => v if var.rotation_lambda_name != ""
+  }
+  secret_id          = aws_secretsmanager_secret.user[each.key].id
+  include_deprecated = true
+}
+
+data "aws_secretsmanager_secret_version" "user_rotated" {
+  for_each = {
+    for k, v in var.users : k => v if var.rotation_lambda_name != "" && length(data.aws_secretsmanager_secret_versions.user_rotated[k].versions) > 0
+  }
+  secret_id = aws_secretsmanager_secret.user[each.key].id
+}
+
 resource "aws_secretsmanager_secret_version" "user_rotated" {
   for_each = {
     for k, v in var.users : k => v if var.rotation_lambda_name != ""
@@ -155,7 +185,11 @@ resource "aws_secretsmanager_secret_version" "user_rotated" {
   secret_string = jsonencode(merge(
     {
       username = postgresql_role.user[each.key].name
-      password = random_password.user[each.key].result
+      password = (
+        length(data.aws_secretsmanager_secret_versions.user_rotated[each.key].versions) > 0 ?
+        jsondecode(aws_secretsmanager_secret_version.user_rotated[each.key].secret_string)["password"] :
+        random_password.user_initial[each.key].result
+      )
       host = local.hoop_connect ? (
         try(var.hoop.cluster, false) ? data.aws_rds_cluster.hoop_db_server[0].endpoint :
         data.aws_db_instance.hoop_db_server[0].address
@@ -173,11 +207,6 @@ resource "aws_secretsmanager_secret_version" "user_rotated" {
     } : {}
     )
   )
-  lifecycle {
-    ignore_changes = [
-      secret_string,
-    ]
-  }
 }
 
 resource "aws_secretsmanager_secret_rotation" "user" {
@@ -186,6 +215,7 @@ resource "aws_secretsmanager_secret_rotation" "user" {
   }
   secret_id           = aws_secretsmanager_secret.user[each.key].id
   rotation_lambda_arn = data.aws_lambda_function.rotation_function[0].arn
+  rotate_immediately  = var.rotate_immediately
   rotation_rules {
     automatically_after_days = var.password_rotation_period
     duration                 = var.rotation_duration
