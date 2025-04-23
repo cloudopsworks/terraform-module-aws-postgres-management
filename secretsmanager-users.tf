@@ -17,12 +17,12 @@ resource "aws_secretsmanager_secret" "user" {
       postgresql_database.this[each.value.db_ref].name
       : each.value.database_name
     ), "_", "-"),
-    replace(postgresql_role.user[each.key].name, "_", "-")
+    replace(each.value.name, "_", "-")
   )
-  description = "RDS User Credentials - ${postgresql_role.user[each.key].name} - Grants: ${each.value.grant} - ${local.psql.engine} - ${local.psql.server_name}"
+  description = "RDS User Credentials - ${each.value.name} - Grants: ${each.value.grant} - ${local.psql.engine} - ${local.psql.server_name}"
   kms_key_id  = var.secrets_kms_key_id
   tags = merge(local.all_tags, {
-    "rds-username" = postgresql_role.user[each.key].name
+    "rds-username" = each.value.name
     "rds-datatabase-name" = (try(each.value.db_ref, "") != "" ?
       postgresql_database.this[each.value.db_ref].name
       : each.value.database_name
@@ -38,7 +38,7 @@ resource "aws_secretsmanager_secret_version" "user" {
   secret_id = aws_secretsmanager_secret.user[each.key].id
   secret_string = jsonencode(merge(
     {
-      username = postgresql_role.user[each.key].name
+      username = each.value.name
       password = random_password.user[each.key].result
       host = local.hoop_connect ? (
         try(var.hoop.cluster, false) ? data.aws_rds_cluster.hoop_db_server[0].endpoint :
@@ -81,7 +81,7 @@ resource "aws_secretsmanager_secret_version" "user_rotated" {
   secret_id = aws_secretsmanager_secret.user[each.key].id
   secret_string = jsonencode(merge(
     {
-      username = postgresql_role.user[each.key].name
+      username = each.value.name
       password = (
         length(data.aws_secretsmanager_secret_versions.user_rotated[each.key].versions) > 0 ?
         jsondecode(data.aws_secretsmanager_secret_version.user_rotated[each.key].secret_string)["password"] :

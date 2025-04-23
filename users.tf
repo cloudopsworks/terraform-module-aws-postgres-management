@@ -4,7 +4,6 @@
 #            Distributed Under Apache v2.0 License
 #
 
-
 resource "time_rotating" "user" {
   for_each = {
     for k, user in var.users : k => user if var.rotation_lambda_name == ""
@@ -44,9 +43,13 @@ resource "random_password" "user_initial" {
 }
 
 resource "postgresql_role" "user" {
-  for_each           = var.users
-  name               = each.value.name
-  password           = var.rotation_lambda_name == "" ? random_password.user[each.key].result : random_password.user_initial[each.key].result
+  for_each = var.users
+  name     = each.value.name
+  password = var.rotation_lambda_name == "" ? random_password.user[each.key].result : (
+    length(data.aws_secretsmanager_secret_versions.user_rotated[each.key].versions) > 0 ?
+    jsondecode(data.aws_secretsmanager_secret_version.user_rotated[each.key].secret_string)["password"] :
+    random_password.user_initial[each.key].result
+  )
   login              = try(each.value.login, true)
   superuser          = try(each.value.superuser, null)
   create_database    = try(each.value.create_database, null)

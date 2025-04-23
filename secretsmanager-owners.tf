@@ -20,11 +20,11 @@ resource "aws_secretsmanager_secret" "owner" {
     local.psql.engine,
     local.psql.server_name,
     replace(postgresql_database.this[each.key].name, "_", "-"),
-    replace(postgresql_role.owner[each.key].name, "_", "-")
+    replace(local.owner_list[each.key], "_", "-")
   )
-  description = "RDS Owner credentials - ${postgresql_role.owner[each.key].name} - ${local.psql.engine} - ${local.psql.server_name} - ${postgresql_database.this[each.key].name}"
+  description = "RDS Owner credentials - ${local.owner_list[each.key]} - ${local.psql.engine} - ${local.psql.server_name} - ${postgresql_database.this[each.key].name}"
   tags = merge(local.all_tags, {
-    "rds-username"        = postgresql_role.owner[each.key].name
+    "rds-username"        = local.owner_list[each.key]
     "rds-datatabase-name" = postgresql_database.this[each.key].name
     "rds-server-name"     = local.psql.server_name
   })
@@ -36,7 +36,7 @@ resource "aws_secretsmanager_secret_version" "owner" {
   }
   secret_id = aws_secretsmanager_secret.owner[each.key].id
   secret_string = jsonencode({
-    username = postgresql_role.owner[each.key].name
+    username = local.owner_list[each.key]
     password = random_password.owner[each.key].result
     host = local.hoop_connect ? (
       try(var.hoop.cluster, false) ? data.aws_rds_cluster.hoop_db_server[0].endpoint :
@@ -74,7 +74,7 @@ resource "aws_secretsmanager_secret_version" "owner_rotated" {
   }
   secret_id = aws_secretsmanager_secret.owner[each.key].id
   secret_string = jsonencode({
-    username = postgresql_role.owner[each.key].name
+    username = local.owner_list[each.key]
     password = (
       length(data.aws_secretsmanager_secret_versions.owner_rotated[each.key].versions) > 0 ?
       jsondecode(data.aws_secretsmanager_secret_version.owner_rotated[each.key].secret_string)["password"] :
