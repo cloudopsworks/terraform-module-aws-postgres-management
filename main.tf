@@ -64,7 +64,6 @@ resource "postgresql_role" "owner" {
   password           = var.rotation_lambda_name == "" ? random_password.owner[each.key].result : random_password.owner_initial[each.key].result
   encrypted_password = true
   create_role        = true
-  superuser          = true
   login              = true
 }
 
