@@ -84,7 +84,7 @@ resource "aws_secretsmanager_secret_version" "user_rotated" {
       username = postgresql_role.user[each.key].name
       password = (
         length(data.aws_secretsmanager_secret_versions.user_rotated[each.key].versions) > 0 ?
-        jsondecode(aws_secretsmanager_secret_version.user_rotated[each.key].secret_string)["password"] :
+        jsondecode(data.aws_secretsmanager_secret_version.user_rotated[each.key].secret_string)["password"] :
         random_password.user_initial[each.key].result
       )
       host = local.hoop_connect ? (
