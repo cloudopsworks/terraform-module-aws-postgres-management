@@ -69,3 +69,9 @@ variable "rotate_immediately" {
   type        = bool
   default     = false
 }
+
+variable "force_reset" {
+  description = "Force Reset the password"
+  type        = bool
+  default     = false
+}

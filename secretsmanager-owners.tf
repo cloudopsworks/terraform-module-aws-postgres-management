@@ -76,7 +76,7 @@ resource "aws_secretsmanager_secret_version" "owner_rotated" {
   secret_string = jsonencode({
     username = local.owner_list[each.key]
     password = (
-      length(data.aws_secretsmanager_secret_versions.owner_rotated[each.key].versions) > 0 ?
+      length(data.aws_secretsmanager_secret_versions.owner_rotated[each.key].versions) > 0 && !var.force_reset ?
       jsondecode(data.aws_secretsmanager_secret_version.owner_rotated[each.key].secret_string)["password"] :
       random_password.owner_initial[each.key].result
     )

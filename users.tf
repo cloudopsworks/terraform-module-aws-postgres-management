@@ -46,7 +46,7 @@ resource "postgresql_role" "user" {
   for_each = var.users
   name     = each.value.name
   password = var.rotation_lambda_name == "" ? random_password.user[each.key].result : (
-    length(data.aws_secretsmanager_secret_versions.user_rotated[each.key].versions) > 0 ?
+    length(data.aws_secretsmanager_secret_versions.user_rotated[each.key].versions) > 0 && !var.force_reset ?
     jsondecode(data.aws_secretsmanager_secret_version.user_rotated[each.key].secret_string)["password"] :
     random_password.user_initial[each.key].result
   )
