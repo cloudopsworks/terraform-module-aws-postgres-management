@@ -16,7 +16,7 @@ hoop admin create connection ${local.psql.server_name}-${postgresql_database.thi
   -e "USER=_aws:${aws_secretsmanager_secret.owner[key].name}:username" \
   -e "PASS=_aws:${aws_secretsmanager_secret.owner[key].name}:password" \
   -e "DB=_aws:${aws_secretsmanager_secret.owner[key].name}:dbname" \
-  -e "SSLMODE=prefer" \
+  -e "SSLMODE=${try(var.hoop.default_sslmode, "require")}" \
   --overwrite
   ${local.hoop_tags}
 EOT
@@ -31,7 +31,7 @@ hoop admin create connection ${local.psql.server_name}-${(try(var.users[key].db_
   -e "USER=_aws:${aws_secretsmanager_secret.user[key].name}:username" \
   -e "PASS=_aws:${aws_secretsmanager_secret.user[key].name}:password" \
   -e "DB=_aws:${aws_secretsmanager_secret.user[key].name}:dbname" \
-  -e "SSLMODE=prefer" \
+  -e "SSLMODE=${try(var.hoop.default_sslmode, "require")}" \
   --overwrite
   ${local.hoop_tags}
 EOT
