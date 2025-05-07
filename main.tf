@@ -78,6 +78,7 @@ resource "postgresql_role" "owner" {
 }
 
 resource "postgresql_grant_role" "provided_owner" {
+  depends_on = [postgresql_role.owner]
   for_each = {
     for key, db in var.databases : key => db if !try(db.create_owner, false)
   }
