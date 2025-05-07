@@ -11,6 +11,7 @@ locals {
 }
 
 resource "postgresql_database" "this" {
+  depends_on             = [postgresql_role.owner]
   for_each               = var.databases
   name                   = each.value.name
   owner                  = try(each.value.create_owner, false) ? local.owner_list[each.key] : each.value.owner
