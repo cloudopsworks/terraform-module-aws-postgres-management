@@ -6,8 +6,8 @@
 
 locals {
   hoop_tags = length(try(var.hoop.tags, [])) > 0 ? join(" ", [for v in var.hoop.tags : "--tags \"${v}\""]) : ""
-  hoop_connection_owners = try(var.hoop.enabled, false) && strcontains(local.psql.engine, "postgres") ? [
-    for key, db in var.databases : <<EOT
+  hoop_connection_owners = try(var.hoop.enabled, false) && strcontains(local.psql.engine, "postgres") ? {
+    for key, db in var.databases : key => <<EOT
 hoop admin create connection ${local.psql.server_name}-${postgresql_database.this[key].name}-ow \
   --agent ${var.hoop.agent} \
   --type database/postgres \
@@ -19,9 +19,9 @@ hoop admin create connection ${local.psql.server_name}-${postgresql_database.thi
   -e "SSLMODE=${try(var.hoop.default_sslmode, "require")}" \
   --overwrite ${local.hoop_tags}
 EOT
-  ] : null
-  hoop_connection_users = try(var.hoop.enabled, false) && strcontains(local.psql.engine, "postgres") ? [
-    for key, role_user in postgresql_role.user : <<EOT
+  } : null
+  hoop_connection_users = try(var.hoop.enabled, false) && strcontains(local.psql.engine, "postgres") ? {
+    for key, role_user in postgresql_role.user : key => <<EOT
 hoop admin create connection ${local.psql.server_name}-${(try(var.users[key].db_ref, "") != "" ? postgresql_database.this[var.users[key].db_ref].name : var.users[key].database_name)}-${role_user.name} \
   --agent ${var.hoop.agent} \
   --type database/postgres \
@@ -33,14 +33,14 @@ hoop admin create connection ${local.psql.server_name}-${(try(var.users[key].db_
   -e "SSLMODE=${try(var.hoop.default_sslmode, "require")}" \
   --overwrite ${local.hoop_tags}
 EOT
-  ] : null
+  } : null
 }
 
 resource "null_resource" "hoop_connection_owners" {
-  for_each = toset([
-    for v in local.hoop_connection_owners : v
+  for_each = {
+    for k, v in local.hoop_connection_owners : k => v
     if var.run_hoop
-  ])
+  }
   provisioner "local-exec" {
     command     = each.value
     interpreter = ["bash", "-c"]
@@ -48,14 +48,14 @@ resource "null_resource" "hoop_connection_owners" {
 }
 
 output "hoop_connection_owners" {
-  value = local.hoop_connection_owners
+  value = values(local.hoop_connection_owners)
 }
 
 resource "null_resource" "hoop_connection_users" {
-  for_each = toset([
-    for v in local.hoop_connection_users : v
+  for_each = {
+    for k, v in local.hoop_connection_users : k => v
     if var.run_hoop
-  ])
+  }
   provisioner "local-exec" {
     command     = each.value
     interpreter = ["bash", "-c"]
@@ -63,5 +63,5 @@ resource "null_resource" "hoop_connection_users" {
 }
 
 output "hoop_connection_users" {
-  value = local.hoop_connection_users
+  value = values(local.hoop_connection_users)
 }
