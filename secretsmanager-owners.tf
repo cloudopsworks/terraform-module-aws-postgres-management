@@ -10,7 +10,7 @@ locals {
       local.secret_store_path,
       local.psql.engine,
       local.psql.server_name,
-      replace(postgresql_database.this[key].name, "_", "-"),
+      replace(db.name, "_", "-"),
       replace(local.owner_list[key], "_", "-")
     )
     if try(db.create_owner, false)
