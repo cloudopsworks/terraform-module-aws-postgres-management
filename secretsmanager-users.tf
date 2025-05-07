@@ -69,7 +69,7 @@ data "aws_secretsmanager_secret_versions" "user_rotated" {
 
 data "aws_secretsmanager_secret_version" "user_rotated" {
   for_each = {
-    for k, v in var.users : k => v if var.rotation_lambda_name != "" && length(data.aws_secretsmanager_secret_versions.user_rotated[k].versions) > 0
+    for k, v in var.users : k => v if var.rotation_lambda_name != "" && try(length(data.aws_secretsmanager_secret_versions.user_rotated[k].versions), 0) > 0
   }
   secret_id = aws_secretsmanager_secret.user[each.key].id
 }
@@ -83,7 +83,7 @@ resource "aws_secretsmanager_secret_version" "user_rotated" {
     {
       username = each.value.name
       password = (
-        length(data.aws_secretsmanager_secret_versions.user_rotated[each.key].versions) > 0 && !var.force_reset ?
+        try(length(data.aws_secretsmanager_secret_versions.user_rotated[each.key].versions), 0) > 0 && !var.force_reset ?
         jsondecode(data.aws_secretsmanager_secret_version.user_rotated[each.key].secret_string)["password"] :
         random_password.user_initial[each.key].result
       )
