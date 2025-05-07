@@ -64,9 +64,21 @@ resource "aws_secretsmanager_secret_version" "user" {
   )
 }
 
-data "aws_secretsmanager_secret_versions" "user_rotated" {
+data "aws_secretsmanager_secrets" "user" {
   for_each = {
     for k, v in var.users : k => v if var.rotation_lambda_name != ""
+  }
+  filter = {
+    name = "name"
+    values = [
+      local.user_names_list[each.key]
+    ]
+  }
+}
+
+data "aws_secretsmanager_secret_versions" "user_rotated" {
+  for_each = {
+    for k, v in var.users : k => v if var.rotation_lambda_name != "" && length(data.aws_secretsmanager_secrets.user[k].names) > 0
   }
   secret_id          = local.user_names_list[each.key]
   include_deprecated = true
@@ -74,7 +86,7 @@ data "aws_secretsmanager_secret_versions" "user_rotated" {
 
 data "aws_secretsmanager_secret_version" "user_rotated" {
   for_each = {
-    for k, v in var.users : k => v if var.rotation_lambda_name != "" && try(length(data.aws_secretsmanager_secret_versions.user_rotated[k].versions), 0) > 0
+    for k, v in var.users : k => v if var.rotation_lambda_name != "" && length(data.aws_secretsmanager_secrets.user[k].names) > 0 && try(length(data.aws_secretsmanager_secret_versions.user_rotated[k].versions), 0) > 0
   }
   secret_id = local.user_names_list[each.key]
 }
