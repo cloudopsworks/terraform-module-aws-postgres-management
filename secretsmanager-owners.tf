@@ -4,6 +4,18 @@
 #            Distributed Under Apache v2.0 License
 #
 
+locals {
+  owner_name_list = {
+    for key, db in var.databases : key => format("%s/%s/%s/%s/%s-rds-credentials",
+      local.secret_store_path,
+      local.psql.engine,
+      local.psql.server_name,
+      replace(db.name, "_", "-"),
+      replace(local.owner_list[key], "_", "-")
+    )
+    if try(db.create_owner, false)
+  }
+}
 # # Secrets saving
 data "aws_lambda_function" "rotation_function" {
   count         = var.rotation_lambda_name != "" ? 1 : 0
@@ -15,13 +27,7 @@ resource "aws_secretsmanager_secret" "owner" {
   for_each = {
     for key, db in var.databases : key => db if try(db.create_owner, false)
   }
-  name = format("%s/%s/%s/%s/%s-rds-credentials",
-    local.secret_store_path,
-    local.psql.engine,
-    local.psql.server_name,
-    replace(postgresql_database.this[each.key].name, "_", "-"),
-    replace(local.owner_list[each.key], "_", "-")
-  )
+  name        = local.owner_name_list[each.key]
   description = "RDS Owner credentials - ${local.owner_list[each.key]} - ${local.psql.engine} - ${local.psql.server_name} - ${postgresql_database.this[each.key].name}"
   tags = merge(local.all_tags, {
     "rds-username"        = local.owner_list[each.key]
@@ -52,19 +58,30 @@ resource "aws_secretsmanager_secret_version" "owner" {
   })
 }
 
-data "aws_secretsmanager_secret_versions" "owner_rotated" {
+data "aws_secretsmanager_secrets" "owner" {
   for_each = {
     for key, db in var.databases : key => db if try(db.create_owner, false) && var.rotation_lambda_name != ""
   }
-  secret_id          = aws_secretsmanager_secret.owner[each.key].id
+  filter {
+    name = "name"
+    values = [
+      local.owner_name_list[each.key]
+    ]
+  }
+}
+
+data "aws_secretsmanager_secret_versions" "owner_rotated" {
+  for_each = {
+  for key, db in var.databases : key => db if try(db.create_owner, false) && var.rotation_lambda_name != "" && length(data.aws_secretsmanager_secrets.owner[key].names) > 0 }
+  secret_id          = local.owner_name_list[each.key]
   include_deprecated = true
 }
 
 data "aws_secretsmanager_secret_version" "owner_rotated" {
   for_each = {
-    for key, db in var.databases : key => db if try(db.create_owner, false) && var.rotation_lambda_name != "" && try(length(data.aws_secretsmanager_secret_versions.owner_rotated[key].versions), 0) > 0
+    for key, db in var.databases : key => db if try(db.create_owner, false) && var.rotation_lambda_name != "" && length(data.aws_secretsmanager_secrets.owner[key].names) > 0 && try(length(data.aws_secretsmanager_secret_versions.owner_rotated[key].versions), 0) > 0
   }
-  secret_id = aws_secretsmanager_secret.owner[each.key].id
+  secret_id = local.owner_name_list[each.key]
 }
 
 
