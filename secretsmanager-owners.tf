@@ -62,7 +62,7 @@ data "aws_secretsmanager_secret_versions" "owner_rotated" {
 
 data "aws_secretsmanager_secret_version" "owner_rotated" {
   for_each = {
-    for key, db in var.databases : key => db if try(db.create_owner, false) && var.rotation_lambda_name != "" && length(data.aws_secretsmanager_secret_versions.owner_rotated[key].versions) > 0
+    for key, db in var.databases : key => db if try(db.create_owner, false) && var.rotation_lambda_name != "" && try(length(data.aws_secretsmanager_secret_versions.owner_rotated[key].versions), 0) > 0
   }
   secret_id = aws_secretsmanager_secret.owner[each.key].id
 }
@@ -76,7 +76,7 @@ resource "aws_secretsmanager_secret_version" "owner_rotated" {
   secret_string = jsonencode({
     username = local.owner_list[each.key]
     password = (
-      length(data.aws_secretsmanager_secret_versions.owner_rotated[each.key].versions) > 0 && !var.force_reset ?
+      try(length(data.aws_secretsmanager_secret_versions.owner_rotated[each.key].versions), 0) > 0 && !var.force_reset ?
       jsondecode(data.aws_secretsmanager_secret_version.owner_rotated[each.key].secret_string)["password"] :
       random_password.owner_initial[each.key].result
     )
