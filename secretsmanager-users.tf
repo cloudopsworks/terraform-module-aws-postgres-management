@@ -7,18 +7,23 @@
 #############
 ## ALL USERS
 #############
+locals {
+  user_names_list = {
+    for k, v in var.users : k => format("%s/%s/%s/%s/%s-rds-credentials",
+      local.secret_store_path,
+      local.psql.engine,
+      local.psql.server_name,
+      replace((try(each.value.db_ref, "") != "" ?
+        postgresql_database.this[each.value.db_ref].name
+        : each.value.database_name
+      ), "_", "-"),
+      replace(each.value.name, "_", "-")
+    )
+  }
+}
 resource "aws_secretsmanager_secret" "user" {
-  for_each = var.users
-  name = format("%s/%s/%s/%s/%s-rds-credentials",
-    local.secret_store_path,
-    local.psql.engine,
-    local.psql.server_name,
-    replace((try(each.value.db_ref, "") != "" ?
-      postgresql_database.this[each.value.db_ref].name
-      : each.value.database_name
-    ), "_", "-"),
-    replace(each.value.name, "_", "-")
-  )
+  for_each    = var.users
+  name        = local.user_names_list[each.key]
   description = "RDS User Credentials - ${each.value.name} - Grants: ${each.value.grant} - ${local.psql.engine} - ${local.psql.server_name}"
   kms_key_id  = var.secrets_kms_key_id
   tags = merge(local.all_tags, {
@@ -63,7 +68,7 @@ data "aws_secretsmanager_secret_versions" "user_rotated" {
   for_each = {
     for k, v in var.users : k => v if var.rotation_lambda_name != ""
   }
-  secret_id          = aws_secretsmanager_secret.user[each.key].id
+  secret_id          = local.user_names_list[each.key]
   include_deprecated = true
 }
 
@@ -71,7 +76,7 @@ data "aws_secretsmanager_secret_version" "user_rotated" {
   for_each = {
     for k, v in var.users : k => v if var.rotation_lambda_name != "" && try(length(data.aws_secretsmanager_secret_versions.user_rotated[k].versions), 0) > 0
   }
-  secret_id = aws_secretsmanager_secret.user[each.key].id
+  secret_id = local.user_names_list[each.key]
 }
 
 resource "aws_secretsmanager_secret_version" "user_rotated" {
