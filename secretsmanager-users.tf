@@ -13,11 +13,11 @@ locals {
       local.secret_store_path,
       local.psql.engine,
       local.psql.server_name,
-      replace((try(each.value.db_ref, "") != "" ?
-        postgresql_database.this[each.value.db_ref].name
-        : each.value.database_name
+      replace((try(v.db_ref, "") != "" ?
+        postgresql_database.this[v.db_ref].name
+        : v.database_name
       ), "_", "-"),
-      replace(each.value.name, "_", "-")
+      replace(v.name, "_", "-")
     )
   }
 }
