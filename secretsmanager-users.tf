@@ -68,7 +68,7 @@ data "aws_secretsmanager_secrets" "user" {
   for_each = {
     for k, v in var.users : k => v if var.rotation_lambda_name != ""
   }
-  filter = {
+  filter {
     name = "name"
     values = [
       local.user_names_list[each.key]

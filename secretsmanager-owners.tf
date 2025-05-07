@@ -62,7 +62,7 @@ data "aws_secretsmanager_secrets" "owner" {
   for_each = {
     for key, db in var.databases : key => db if try(db.create_owner, false) && var.rotation_lambda_name != ""
   }
-  filter = {
+  filter {
     name = "name"
     values = [
       local.owner_name_list[each.key]
