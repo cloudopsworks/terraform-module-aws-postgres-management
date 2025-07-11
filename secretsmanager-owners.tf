@@ -112,13 +112,18 @@ resource "aws_secretsmanager_secret_version" "owner_rotated" {
     sslmode = local.hoop_connect ? var.hoop.default_sslmode : "require"
     engine  = local.psql.engine
   })
+  lifecycle {
+    ignore_changes = [
+      secret_string
+    ]
+  }
 }
 
 resource "aws_secretsmanager_secret_rotation" "owner" {
   for_each = {
     for key, db in var.databases : key => db if try(db.create_owner, false) && var.rotation_lambda_name != ""
   }
-  secret_id           = aws_secretsmanager_secret.owner[each.key].id
+  secret_id           = aws_secretsmanager_secret.owner[each.key].arn
   rotation_lambda_arn = data.aws_lambda_function.rotation_function[0].arn
   rotate_immediately  = var.rotate_immediately
   rotation_rules {
