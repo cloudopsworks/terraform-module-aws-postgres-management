@@ -130,4 +130,7 @@ resource "aws_secretsmanager_secret_rotation" "owner" {
     automatically_after_days = var.password_rotation_period
     duration                 = var.rotation_duration
   }
+  depends_on = [
+    aws_secretsmanager_secret_version.owner_rotated
+  ]
 }
