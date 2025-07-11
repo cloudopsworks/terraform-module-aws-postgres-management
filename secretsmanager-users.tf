@@ -121,13 +121,19 @@ resource "aws_secretsmanager_secret_version" "user_rotated" {
     } : {}
     )
   )
+  lifecycle {
+    ignore_changes = [
+      secret_string,
+
+    ]
+  }
 }
 
 resource "aws_secretsmanager_secret_rotation" "user" {
   for_each = {
     for k, v in var.users : k => v if var.rotation_lambda_name != ""
   }
-  secret_id           = aws_secretsmanager_secret.user[each.key].id
+  secret_id           = aws_secretsmanager_secret.user[each.key].arn
   rotation_lambda_arn = data.aws_lambda_function.rotation_function[0].arn
   rotate_immediately  = var.rotate_immediately
   rotation_rules {

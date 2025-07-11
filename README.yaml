@@ -11,9 +11,11 @@ copyrights:
 github_repo: cloudopsworks/terraform-module-aws-postgres-management
 
 description: |-
-  This module manages AWS RDS for PostgreSQL databases and automates user management. 
-  It provides a best-practice approach to creating, modifying, and maintaining 
-  PostgreSQL databases on AWS RDS.
+  This module manages AWS RDS for PostgreSQL databases and automates user management with 
+  comprehensive security features. It provides a best-practice approach to creating, modifying, 
+  and maintaining PostgreSQL databases on AWS RDS, including automated backups, maintenance 
+  windows, parameter groups, and security group management. The module supports multi-AZ 
+  deployments, encryption at rest, and automated minor version upgrades.
 
 # Introduction to the project
 introduction: |-
@@ -24,38 +26,111 @@ introduction: |-
   It offers a variety of configuration parameters for fine-tuning resources to meet different 
   environment needs, including production, development, and staging.
 
+  #### Key Features
+  - Automated PostgreSQL database provisioning
+  - User and permission management
+  - Configurable backup retention periods
+  - Multi-AZ deployment support
+  - Encryption at rest using AWS KMS
+  - Custom parameter groups
+  - Automated minor version upgrades
+  - Enhanced monitoring capabilities
+  - Performance insights integration
+  - Security group management
+
 # How to use this project
 usage: |-
   ### How to Use this Project
   
-  1. **Add this module as a source** in your Terraform or Terragrunt configuration.
-  2. **Provide the required variables** such as your AWS region, desired engine version, 
-     instance class, database name, username, and more. 
-  3. **Run Terraform/Terragrunt** to deploy or update the PostgreSQL database resources.
-  
-  This module can be integrated into existing infrastructure or used standalone.
+  #### Prerequisites
+  - Terraform >= 1.0
+  - Terragrunt >= 0.36
+  - AWS Provider >= 4.0
+
+  #### Configuration Steps
+  1. **Add this module as a source** in your Terraform or Terragrunt configuration:
+     ```hcl
+     source = "git::https://github.com/cloudopsworks/terraform-module-aws-postgres-management.git?ref=v1.0.0"
+     ```
+
+  2. **Configure required variables** in your `terraform.tfvars` or Terragrunt inputs:
+     ```yaml
+     # Database Configuration
+     database_name: "myapp"
+     engine_version: "14.5"
+     instance_class: "db.t3.medium"
+
+     # Networking
+     vpc_id: "vpc-12345678"
+     subnet_ids: ["subnet-a1b2c3d4", "subnet-e5f6g7h8"]
+
+     # Security
+     backup_retention_period: 7
+     multi_az: true
+     storage_encrypted: true
+     ```
+
+  3. **Initialize and apply** the configuration:
+     ```bash
+     terragrunt init
+     terragrunt plan
+     terragrunt apply
+     ```
+
+  #### Available Variables
+  Refer to variables-pgsql.tf for detailed documentation of all available options.
 
 # Example usage
 examples: |-
   ### Example Usage
   
-  Below is a sample Terragrunt configuration snippet that illustrates how to reference 
-  this module. Please note this example uses placeholders for sensitive or environment-specific 
-  values. Adapt as needed for your environment.
-  
+  #### Basic Configuration (terragrunt.hcl)
   ```hcl
-  # terragrunt.hcl
   terraform {
-    source = "git::https://github.com/cloudopsworks/terraform-module-aws-postgres-management.git?ref=develop"
+    source = "git::https://github.com/cloudopsworks/terraform-module-aws-postgres-management.git?ref=v1.0.0"
   }
-  
-  # Common inputs based on local vars
+
   inputs = {
-    # Example of overriding default values
-  
-    # Additional tags pulled from local or parent configuration
-    extra_tags = local.tags
+    identifier = "myapp-postgres"
+    engine_version = "14.5"
+    instance_class = "db.t3.medium"
+    allocated_storage = 20
+
+    database_name = "myapp"
+    master_username = "dbadmin"
+
+    vpc_id = dependency.vpc.outputs.vpc_id
+    subnet_ids = dependency.vpc.outputs.private_subnets
+
+    backup_retention_period = 7
+    multi_az = true
+    storage_encrypted = true
+
+    extra_tags = {
+      Environment = "production"
+      Project     = "myapp"
+    }
   }
+  ```
+
+  #### Production Configuration (production/inputs.yaml)
+  ```yaml
+  # Database Settings
+  instance_class: "db.r6g.xlarge"
+  allocated_storage: 100
+  max_allocated_storage: 500
+
+  # High Availability
+  multi_az: true
+  backup_retention_period: 30
+
+  # Performance
+  performance_insights_enabled: true
+  monitoring_interval: 60
+
+  # Security
+  storage_encrypted: true
+  deletion_protection: true
   ```
   
   You can place this `terragrunt.hcl` file in a directory that also contains the relevant 
@@ -68,20 +143,61 @@ examples: |-
 quickstart: |-
   # Quickstart
   
-  1. **Install Terragrunt** (and Terraform) on your machine.  
-  2. **Clone or reference** this repository in your local Terragrunt configuration.  
-  3. **Create or update** the `terragrunt.hcl` file to point to the correct source and set 
-     required inputs.  
-  4. **Run**:
+  ### Prerequisites
+  - AWS CLI configured with appropriate credentials
+  - Terraform >= 1.0.0
+  - Terragrunt >= 0.36.0
+
+  ### Step-by-Step Guide
+  1. **Create Project Structure**:
+     ```bash
+     mkdir -p myproject/postgres
+     cd myproject/postgres
+     ```
+
+  2. **Create Terragrunt Configuration**:
+     Create `terragrunt.hcl`:
+     ```hcl
+     terraform {
+       source = "git::https://github.com/cloudopsworks/terraform-module-aws-postgres-management.git?ref=v1.0.0"
+     }
+
+     inputs = {
+       identifier = "myapp-postgres"
+       engine_version = "14.5"
+       instance_class = "db.t3.medium"
+       database_name = "myapp"
+       vpc_id = "vpc-12345678"
+       subnet_ids = ["subnet-a1b2c3d4", "subnet-e5f6g7h8"]
+     }
+     ```
+
+  3. **Initialize and Deploy**:
      ```bash
      terragrunt init
      terragrunt plan
      terragrunt apply
      ```
-  5. **Verify** that the PostgreSQL database has been provisioned successfully in AWS.  
-  
+
+  4. **Verify Deployment**:
+     ```bash
+     terragrunt output
+     aws rds describe-db-instances --db-instance-identifier myapp-postgres
+     ```
+
+  5. **Connect to Database**:
+     ```bash
+     psql -h $(terragrunt output -raw endpoint) -U $(terragrunt output -raw master_username) -d myapp
+     ```
+
   By following these steps, you will have a running Amazon RDS for PostgreSQL instance with 
   the specified configuration, complete with recommended tags and parameters.
+
+  ### Next Steps
+  - Configure additional security groups
+  - Set up monitoring and alerting
+  - Implement backup strategies
+  - Configure read replicas if needed
 
 include:
   - "docs/targets.md"
