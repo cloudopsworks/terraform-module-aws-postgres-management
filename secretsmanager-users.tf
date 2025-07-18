@@ -120,7 +120,7 @@ locals {
       try(var.users[key].connection_string_type, "") == "dotnet" ? {
         connection_string_type = var.users[key].connection_string_type
         connection_string = format("Host=%s;Port=%s;Database=%s;Username=%s;Password=%s;SSL Mode=%s;Search Path=%s",
-          user_secret.host, user_secret.user_secret,
+          user_secret.host, user_secret.port,
           user_secret.dbname, user_secret.username, user_secret.password,
         user_secret.sslmode, try(var.users[key].schema, "public"))
       } : {},
