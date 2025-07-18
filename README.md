@@ -16,10 +16,11 @@
 
 
 This module manages AWS RDS for PostgreSQL databases and automates user management with 
-comprehensive security features. It provides a best-practice approach to creating, modifying, 
-and maintaining PostgreSQL databases on AWS RDS, including automated backups, maintenance 
-windows, parameter groups, and security group management. The module supports multi-AZ 
-deployments, encryption at rest, and automated minor version upgrades.
+comprehensive security features. It provides automated user creation, password rotation, 
+and role management capabilities integrated with AWS Secrets Manager. The module handles 
+database instance provisioning, automated backups, maintenance windows, parameter groups, 
+and security group management, supporting multi-AZ deployments, encryption at rest, and 
+automated minor version upgrades.
 
 
 ---
@@ -108,6 +109,22 @@ Instead pin to the release tag (e.g. `?ref=vX.Y.Z`) of one of our [latest releas
    backup_retention_period: 7
    multi_az: true
    storage_encrypted: true
+
+   # User Management
+   users:
+     app_user:
+       name: "application"
+       login: true
+       create_database: false
+       connection_limit: 100
+     admin_user:
+       name: "dbadmin"
+       login: true
+       superuser: true
+
+   # Password Rotation
+   password_rotation_period: 90
+   rotation_lambda_name: "db-password-rotation"
    ```
 
 3. **Initialize and apply** the configuration:
@@ -150,6 +167,22 @@ Refer to variables-pgsql.tf for detailed documentation of all available options.
      database_name = "myapp"
      vpc_id = "vpc-12345678"
      subnet_ids = ["subnet-a1b2c3d4", "subnet-e5f6g7h8"]
+
+     users = {
+       app = {
+         name = "application"
+         login = true
+         connection_limit = 100
+       }
+       admin = {
+         name = "dbadmin"
+         login = true
+         superuser = true
+       }
+     }
+
+     password_rotation_period = 90
+     rotation_lambda_name = "db-password-rotation"
    }
    ```
 
@@ -166,19 +199,30 @@ Refer to variables-pgsql.tf for detailed documentation of all available options.
    aws rds describe-db-instances --db-instance-identifier myapp-postgres
    ```
 
-5. **Connect to Database**:
+5. **Retrieve User Credentials**:
    ```bash
-   psql -h $(terragrunt output -raw endpoint) -U $(terragrunt output -raw master_username) -d myapp
+   # For non-rotated passwords
+   terragrunt output -json user_passwords
+
+   # For rotated passwords
+   aws secretsmanager get-secret-value --secret-id myapp-postgres-application
+   ```
+
+6. **Connect to Database**:
+   ```bash
+   psql -h $(terragrunt output -raw endpoint) -U application -d myapp
    ```
 
 By following these steps, you will have a running Amazon RDS for PostgreSQL instance with 
-the specified configuration, complete with recommended tags and parameters.
+configured users and automated password rotation.
 
 ### Next Steps
 - Configure additional security groups
 - Set up monitoring and alerting
 - Implement backup strategies
 - Configure read replicas if needed
+- Set up additional database users and roles
+- Configure password rotation policies
 
 
 ## Examples
@@ -207,6 +251,22 @@ inputs = {
   multi_az = true
   storage_encrypted = true
 
+  users = {
+    app = {
+      name = "application"
+      login = true
+      connection_limit = 100
+    }
+    admin = {
+      name = "dbadmin"
+      login = true
+      superuser = true
+    }
+  }
+
+  password_rotation_period = 90
+  rotation_lambda_name = "db-password-rotation"
+
   extra_tags = {
     Environment = "production"
     Project     = "myapp"
@@ -232,6 +292,30 @@ monitoring_interval: 60
 # Security
 storage_encrypted: true
 deletion_protection: true
+
+# User Management
+users:
+  app_user:
+    name: "application"
+    login: true
+    create_database: false
+    connection_limit: 100
+    grant: "owner"
+  readonly_user:
+    name: "readonly"
+    login: true
+    inherit: true
+    connection_limit: 50
+  admin_user:
+    name: "dbadmin"
+    login: true
+    superuser: true
+    create_database: true
+
+# Password Management
+password_rotation_period: 90
+rotation_lambda_name: "db-password-rotation"
+force_reset: false
 ```
 
 You can place this `terragrunt.hcl` file in a directory that also contains the relevant 
@@ -258,7 +342,7 @@ Available targets:
 | Name | Version |
 |------|---------|
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.3 |
-| <a name="requirement_aws"></a> [aws](#requirement\_aws) | ~> 5.0 |
+| <a name="requirement_aws"></a> [aws](#requirement\_aws) | ~> 6.2 |
 | <a name="requirement_null"></a> [null](#requirement\_null) | ~> 3.0 |
 | <a name="requirement_postgresql"></a> [postgresql](#requirement\_postgresql) | ~> 1.25 |
 | <a name="requirement_random"></a> [random](#requirement\_random) | ~> 3.0 |
@@ -311,6 +395,7 @@ Available targets:
 | [postgresql_grant_role.provided_owner](https://registry.terraform.io/providers/cyrilgdn/postgresql/latest/docs/resources/grant_role) | resource |
 | [postgresql_role.owner](https://registry.terraform.io/providers/cyrilgdn/postgresql/latest/docs/resources/role) | resource |
 | [postgresql_role.user](https://registry.terraform.io/providers/cyrilgdn/postgresql/latest/docs/resources/role) | resource |
+| [postgresql_schema.database_schema](https://registry.terraform.io/providers/cyrilgdn/postgresql/latest/docs/resources/schema) | resource |
 | [random_password.owner](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/password) | resource |
 | [random_password.owner_initial](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/password) | resource |
 | [random_password.user](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/password) | resource |
