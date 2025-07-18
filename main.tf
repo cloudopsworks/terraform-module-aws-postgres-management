@@ -22,7 +22,7 @@ resource "postgresql_database" "this" {
   lc_ctype               = try(each.value.ctype, null)
   connection_limit       = try(each.value.connection_limit, -1)
   is_template            = try(each.value.is_template, null)
-  template               = try(each.value.from_template, null)
+  template               = try(each.value.template, null)
   encoding               = try(each.value.encoding, null)
   allow_connections      = try(each.value.allow_connections, null)
   alter_object_ownership = try(each.value.alter_object_ownership, null)
@@ -90,3 +90,23 @@ resource "postgresql_grant_role" "provided_owner" {
   role       = local.psql.admin_user
 }
 
+resource "postgresql_schema" "database_schema" {
+  for_each = merge([
+    for key, db in var.databases : {
+      for schema in try(db.schemas, []) : "${key}_${schema}" => {
+        db_ref = key
+        schema = schema
+      }
+    }
+  ]...)
+  name          = each.value.schema.name
+  database      = postgresql_database.this[each.value.db_ref].name
+  owner         = try(postgresql_role.user[each.value.schema.owner], each.value.schema.owner, postgresql_role.owner[each.value.db_ref].name)
+  if_not_exists = try(each.value.schema.reuse, true)
+  drop_cascade  = try(each.value.schema.cascade_on_delete, false)
+  depends_on = [
+    postgresql_database.this,
+    postgresql_role.owner,
+    postgresql_role.user,
+  ]
+}

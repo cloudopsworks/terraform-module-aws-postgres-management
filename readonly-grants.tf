@@ -19,6 +19,10 @@ resource "postgresql_default_privileges" "user_ro_tab_def_priv" {
   privileges = [
     "SELECT",
   ]
+  depends_on = [
+    postgresql_database.this,
+    postgresql_schema.database_schema,
+  ]
 }
 
 
@@ -32,5 +36,9 @@ resource "postgresql_grant" "user_ro_tab_def_priv" {
   schema      = try(each.value.schema, "public")
   privileges = [
     "SELECT",
+  ]
+  depends_on = [
+    postgresql_database.this,
+    postgresql_schema.database_schema,
   ]
 }

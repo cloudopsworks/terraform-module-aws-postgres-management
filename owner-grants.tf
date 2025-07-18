@@ -40,6 +40,10 @@ resource "postgresql_grant" "user_all_schema" {
   object_type = "schema"
   schema      = try(each.value.schema, "public")
   privileges  = ["ALL"]
+  depends_on = [
+    postgresql_database.this,
+    postgresql_schema.database_schema,
+  ]
 }
 
 # resource "postgresql_grant_role" "user_grant_owner" {
