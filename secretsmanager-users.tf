@@ -50,34 +50,34 @@ locals {
         connection_string_type = var.users[key].connection_string_type
         connection_string = format("jdbc:postgresql://%s:%s/%s?user=%s&password=%s&ssl=true&sslmode=%s&schema=%s",
           user_secret.host, user_secret.port, user_secret.dbname,
-          user_secret.username, user_secret.password, user_secret.sslmode,
+          user_secret.username, urlencode(user_secret.password), user_secret.sslmode,
         try(var.users[key].schema, "public"))
       } : {},
       try(var.users[key].connection_string_type, "") == "dotnet" ? {
         connection_string_type = var.users[key].connection_string_type
         connection_string = format("Host=%s;Port=%s;Database=%s;Username=%s;Password=%s;SSL Mode=%s;Search Path=%s",
           user_secret.host, user_secret.user_secret,
-          user_secret.dbname, user_secret.username, user_secret.password,
+          user_secret.dbname, user_secret.username, urlencode(user_secret.password),
         user_secret.sslmode, try(var.users[key].schema, "public"))
       } : {},
       try(var.users[key].connection_string_type, "") == "odbc" ? {
         connection_string_type = var.users[key].connection_string_type
         connection_string = format("Driver={PostgreSQL ODBC Driver(UNICODE)};Server=%s;Port=%s;Database=%s;UID=%s;PWD=%s;sslmode=%s;schema=%s",
           user_secret.host, user_secret.port, user_secret.dbname,
-          user_secret.username, user_secret.password, user_secret.sslmode,
+          user_secret.username, urlencode(user_secret.password), user_secret.sslmode,
         try(var.users[key].schema, "public"))
       } : {},
       try(var.users[key].connection_string_type, "") == "gopq" ? {
         connection_string_type = var.users[key].connection_string_type
         connection_string = format("postgres://%s:%s@%s:%s/%s?sslmode=%s&schema=%s",
-          user_secret.username, user_secret.password, user_secret.host,
+          user_secret.username, urlencode(user_secret.password), user_secret.host,
           user_secret.port, user_secret.dbname, user_secret.sslmode,
         try(var.users[key].schema, "public"))
       } : {},
       length(regexall("node-pg|psycopg|rustpg", try(var.users[key].connection_string_type, ""))) > 0 ? {
         connection_string_type = var.users[key].connection_string_type
         connection_string = format("postgresql://%s:%s@%s:%s/%s?sslmode=%s&schema=%s",
-          user_secret.username, user_secret.password, user_secret.host,
+          user_secret.username, urlencode(user_secret.password), user_secret.host,
           user_secret.port, user_secret.dbname, user_secret.sslmode,
         try(var.users[key].schema, "public"))
       } : {}
@@ -114,34 +114,34 @@ locals {
         connection_string_type = var.users[key].connection_string_type
         connection_string = format("jdbc:postgresql://%s:%s/%s?user=%s&password=%s&ssl=true&sslmode=%s&schema=%s",
           user_secret.host, user_secret.port, user_secret.dbname,
-          user_secret.username, user_secret.password, user_secret.sslmode,
+          user_secret.username, urlencode(user_secret.password), user_secret.sslmode,
         try(var.users[key].schema, "public"))
       } : {},
       try(var.users[key].connection_string_type, "") == "dotnet" ? {
         connection_string_type = var.users[key].connection_string_type
         connection_string = format("Host=%s;Port=%s;Database=%s;Username=%s;Password=%s;SSL Mode=%s;Search Path=%s",
           user_secret.host, user_secret.port,
-          user_secret.dbname, user_secret.username, user_secret.password,
+          user_secret.dbname, user_secret.username, urlencode(user_secret.password),
         user_secret.sslmode, try(var.users[key].schema, "public"))
       } : {},
       try(var.users[key].connection_string_type, "") == "odbc" ? {
         connection_string_type = var.users[key].connection_string_type
         connection_string = format("Driver={PostgreSQL ODBC Driver(UNICODE)};Server=%s;Port=%s;Database=%s;UID=%s;PWD=%s;sslmode=%s;schema=%s",
           user_secret.host, user_secret.port, user_secret.dbname,
-          user_secret.username, user_secret.password, user_secret.sslmode,
+          user_secret.username, urlencode(user_secret.password), user_secret.sslmode,
         try(var.users[key].schema, "public"))
       } : {},
       try(var.users[key].connection_string_type, "") == "gopq" ? {
         connection_string_type = var.users[key].connection_string_type
         connection_string = format("postgres://%s:%s@%s:%s/%s?sslmode=%s&schema=%s",
-          user_secret.username, user_secret.password, user_secret.host,
+          user_secret.username, urlencode(user_secret.password), user_secret.host,
           user_secret.port, user_secret.dbname, user_secret.sslmode,
         try(var.users[key].schema, "public"))
       } : {},
       length(regexall("node-pg|psycopg|rustpg", try(var.users[key].connection_string_type, ""))) > 0 ? {
         connection_string_type = var.users[key].connection_string_type
         connection_string = format("postgresql://%s:%s@%s:%s/%s?sslmode=%s&schema=%s",
-          user_secret.username, user_secret.password, user_secret.host,
+          user_secret.username, urlencode(user_secret.password), user_secret.host,
           user_secret.port, user_secret.dbname, user_secret.sslmode,
         try(var.users[key].schema, "public"))
       } : {}
