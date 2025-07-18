@@ -12,10 +12,11 @@ github_repo: cloudopsworks/terraform-module-aws-postgres-management
 
 description: |-
   This module manages AWS RDS for PostgreSQL databases and automates user management with 
-  comprehensive security features. It provides a best-practice approach to creating, modifying, 
-  and maintaining PostgreSQL databases on AWS RDS, including automated backups, maintenance 
-  windows, parameter groups, and security group management. The module supports multi-AZ 
-  deployments, encryption at rest, and automated minor version upgrades.
+  comprehensive security features. It provides automated user creation, password rotation, 
+  and role management capabilities integrated with AWS Secrets Manager. The module handles 
+  database instance provisioning, automated backups, maintenance windows, parameter groups, 
+  and security group management, supporting multi-AZ deployments, encryption at rest, and 
+  automated minor version upgrades.
 
 # Introduction to the project
 introduction: |-
@@ -68,6 +69,22 @@ usage: |-
      backup_retention_period: 7
      multi_az: true
      storage_encrypted: true
+
+     # User Management
+     users:
+       app_user:
+         name: "application"
+         login: true
+         create_database: false
+         connection_limit: 100
+       admin_user:
+         name: "dbadmin"
+         login: true
+         superuser: true
+
+     # Password Rotation
+     password_rotation_period: 90
+     rotation_lambda_name: "db-password-rotation"
      ```
 
   3. **Initialize and apply** the configuration:
@@ -106,6 +123,22 @@ examples: |-
     multi_az = true
     storage_encrypted = true
 
+    users = {
+      app = {
+        name = "application"
+        login = true
+        connection_limit = 100
+      }
+      admin = {
+        name = "dbadmin"
+        login = true
+        superuser = true
+      }
+    }
+
+    password_rotation_period = 90
+    rotation_lambda_name = "db-password-rotation"
+
     extra_tags = {
       Environment = "production"
       Project     = "myapp"
@@ -131,6 +164,30 @@ examples: |-
   # Security
   storage_encrypted: true
   deletion_protection: true
+
+  # User Management
+  users:
+    app_user:
+      name: "application"
+      login: true
+      create_database: false
+      connection_limit: 100
+      grant: "owner"
+    readonly_user:
+      name: "readonly"
+      login: true
+      inherit: true
+      connection_limit: 50
+    admin_user:
+      name: "dbadmin"
+      login: true
+      superuser: true
+      create_database: true
+
+  # Password Management
+  password_rotation_period: 90
+  rotation_lambda_name: "db-password-rotation"
+  force_reset: false
   ```
   
   You can place this `terragrunt.hcl` file in a directory that also contains the relevant 
@@ -169,6 +226,22 @@ quickstart: |-
        database_name = "myapp"
        vpc_id = "vpc-12345678"
        subnet_ids = ["subnet-a1b2c3d4", "subnet-e5f6g7h8"]
+
+       users = {
+         app = {
+           name = "application"
+           login = true
+           connection_limit = 100
+         }
+         admin = {
+           name = "dbadmin"
+           login = true
+           superuser = true
+         }
+       }
+
+       password_rotation_period = 90
+       rotation_lambda_name = "db-password-rotation"
      }
      ```
 
@@ -185,19 +258,30 @@ quickstart: |-
      aws rds describe-db-instances --db-instance-identifier myapp-postgres
      ```
 
-  5. **Connect to Database**:
+  5. **Retrieve User Credentials**:
      ```bash
-     psql -h $(terragrunt output -raw endpoint) -U $(terragrunt output -raw master_username) -d myapp
+     # For non-rotated passwords
+     terragrunt output -json user_passwords
+
+     # For rotated passwords
+     aws secretsmanager get-secret-value --secret-id myapp-postgres-application
+     ```
+
+  6. **Connect to Database**:
+     ```bash
+     psql -h $(terragrunt output -raw endpoint) -U application -d myapp
      ```
 
   By following these steps, you will have a running Amazon RDS for PostgreSQL instance with 
-  the specified configuration, complete with recommended tags and parameters.
+  configured users and automated password rotation.
 
   ### Next Steps
   - Configure additional security groups
   - Set up monitoring and alerting
   - Implement backup strategies
   - Configure read replicas if needed
+  - Set up additional database users and roles
+  - Configure password rotation policies
 
 include:
   - "docs/targets.md"
