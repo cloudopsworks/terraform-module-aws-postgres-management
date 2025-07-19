@@ -204,7 +204,6 @@ resource "aws_secretsmanager_secret_version" "user_rotated" {
   lifecycle {
     ignore_changes = [
       secret_string,
-
     ]
   }
 }

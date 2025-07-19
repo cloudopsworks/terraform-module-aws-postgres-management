@@ -58,21 +58,21 @@ We have [*lots of terraform modules*][terraform_modules] that are Open Source an
 ### Introduction
 
 The **Terraform Module for AWS RDS PostgreSQL database and User Management** is designed 
-to streamline the process of provisioning and maintaining PostgreSQL instances on Amazon RDS. 
-It offers a variety of configuration parameters for fine-tuning resources to meet different 
-environment needs, including production, development, and staging.
+to provide comprehensive database management capabilities, focusing on user roles, schema management,
+and automated password rotation. The module supports both standard password management and
+AWS Secrets Manager integration for enhanced security.
 
 #### Key Features
-- Automated PostgreSQL database provisioning
-- User and permission management
-- Configurable backup retention periods
-- Multi-AZ deployment support
-- Encryption at rest using AWS KMS
-- Custom parameter groups
-- Automated minor version upgrades
-- Enhanced monitoring capabilities
-- Performance insights integration
-- Security group management
+- Database user and role management with fine-grained permissions
+- Schema creation and ownership management
+- Automated password rotation with configurable periods
+- AWS Secrets Manager integration
+- Database owner role management
+- Custom connection limits per user
+- Role inheritance and grant capabilities
+- Secure password generation with customizable requirements
+- Support for multiple databases and schemas
+- Flexible user permission configurations
 
 ## Usage
 
@@ -87,55 +87,80 @@ Instead pin to the release tag (e.g. `?ref=vX.Y.Z`) of one of our [latest releas
 - Terraform >= 1.0
 - Terragrunt >= 0.36
 - AWS Provider >= 4.0
+- PostgreSQL Provider
 
-#### Configuration Steps
-1. **Add this module as a source** in your Terraform or Terragrunt configuration:
+#### Main Configuration Options
+
+1. **Database Configuration**
+```yaml
+databases:
+  main:
+    name: "myapp"
+    create_owner: true
+    schemas:
+      - name: "app_schema"
+        owner: "app_user"
+        reuse: true
+      - name: "audit_schema"
+        owner: "audit_user"
+        cascade_on_delete: true
+```
+
+2. **User Management**
+```yaml
+users:
+  app_user:
+    name: "application"
+    login: true
+    create_database: false
+    connection_limit: 100
+    inherit: true
+
+  admin_user:
+    name: "dbadmin"
+    login: true
+    superuser: true
+    create_role: true
+```
+
+3. **Role Configuration**
+```yaml
+roles:
+  read_only:
+    name: "readonly"
+    inherit: true
+    login: false
+    connection_limit: 50
+
+  power_user:
+    name: "power_user"
+    create_database: true
+    create_role: true
+```
+
+4. **Password Rotation**
+```yaml
+# Standard rotation
+password_rotation_period: 90
+
+# AWS Secrets Manager rotation
+rotation_lambda_name: "db-password-rotation"
+force_reset: false  # Force password reset on apply
+```
+
+#### Implementation Steps
+1. **Add module source** to your Terragrunt configuration:
    ```hcl
    source = "git::https://github.com/cloudopsworks/terraform-module-aws-postgres-management.git?ref=v1.0.0"
    ```
 
-2. **Configure required variables** in your `terraform.tfvars` or Terragrunt inputs:
-   ```yaml
-   # Database Configuration
-   database_name: "myapp"
-   engine_version: "14.5"
-   instance_class: "db.t3.medium"
-
-   # Networking
-   vpc_id: "vpc-12345678"
-   subnet_ids: ["subnet-a1b2c3d4", "subnet-e5f6g7h8"]
-
-   # Security
-   backup_retention_period: 7
-   multi_az: true
-   storage_encrypted: true
-
-   # User Management
-   users:
-     app_user:
-       name: "application"
-       login: true
-       create_database: false
-       connection_limit: 100
-     admin_user:
-       name: "dbadmin"
-       login: true
-       superuser: true
-
-   # Password Rotation
-   password_rotation_period: 90
-   rotation_lambda_name: "db-password-rotation"
-   ```
-
-3. **Initialize and apply** the configuration:
+2. **Configure variables** in your configuration files
+3. **Apply the configuration**:
    ```bash
    terragrunt init
    terragrunt plan
    terragrunt apply
    ```
-
-#### Available Variables
-Refer to variables-pgsql.tf for detailed documentation of all available options.
 
 ## Quick Start
 
@@ -394,6 +419,7 @@ Available targets:
 | [postgresql_grant.user_usage_schema](https://registry.terraform.io/providers/cyrilgdn/postgresql/latest/docs/resources/grant) | resource |
 | [postgresql_grant_role.provided_owner](https://registry.terraform.io/providers/cyrilgdn/postgresql/latest/docs/resources/grant_role) | resource |
 | [postgresql_role.owner](https://registry.terraform.io/providers/cyrilgdn/postgresql/latest/docs/resources/role) | resource |
+| [postgresql_role.role](https://registry.terraform.io/providers/cyrilgdn/postgresql/latest/docs/resources/role) | resource |
 | [postgresql_role.user](https://registry.terraform.io/providers/cyrilgdn/postgresql/latest/docs/resources/role) | resource |
 | [postgresql_schema.database_schema](https://registry.terraform.io/providers/cyrilgdn/postgresql/latest/docs/resources/schema) | resource |
 | [random_password.owner](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/password) | resource |
@@ -430,6 +456,7 @@ Available targets:
 | <a name="input_org"></a> [org](#input\_org) | Organization details | <pre>object({<br/>    organization_name = string<br/>    organization_unit = string<br/>    environment_type  = string<br/>    environment_name  = string<br/>  })</pre> | n/a | yes |
 | <a name="input_password_rotation_period"></a> [password\_rotation\_period](#input\_password\_rotation\_period) | Password rotation period in days | `number` | `90` | no |
 | <a name="input_rds"></a> [rds](#input\_rds) | RDS attributes - see docs for example | `any` | `{}` | no |
+| <a name="input_roles"></a> [roles](#input\_roles) | Roles and role attributes - see docs for example | `any` | `{}` | no |
 | <a name="input_rotate_immediately"></a> [rotate\_immediately](#input\_rotate\_immediately) | Rotate the password immediately | `bool` | `false` | no |
 | <a name="input_rotation_duration"></a> [rotation\_duration](#input\_rotation\_duration) | Duration of the lambda function to rotate the password | `string` | `"1h"` | no |
 | <a name="input_rotation_lambda_name"></a> [rotation\_lambda\_name](#input\_rotation\_lambda\_name) | Name of the lambda function to rotate the password | `string` | `""` | no |
