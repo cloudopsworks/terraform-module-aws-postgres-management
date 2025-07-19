@@ -28,6 +28,24 @@ variable "users" {
   default     = {}
 }
 
+## Roles definition - YAML format
+# users:
+#   <user_ref>:
+#     name: <name> # (required) Name of the user
+#     grant: owner | readwrite | readonly # (required) Grant type for the user
+#     db_ref: <db_ref> # (optional) Reference to the database this user is associated with, dafaults to the default dbname of server
+#     database_name: <database_name> # (optional) Name of the database this user is associated with, dafaults to the default dbname of server
+#     schema: <schema> # (optional) Schema this user is associated with, defaults to public
+#     create_database: true | false # (optional) If the user can create databases, defaults to false
+#     replication: true | false # (optional) If the user can replicate, defaults to false
+#     inherit: true | false # (optional) If the user inherits privileges from the parent role, defaults to true
+#     create_role: true | false # (optional) If the user can create roles, defaults to false
+variable "roles" {
+  description = "Roles and role attributes - see docs for example"
+  type        = any
+  default     = {}
+}
+
 ## Databases definition - YAML format
 # databases:
 #   <db_ref>:

@@ -45,41 +45,41 @@ locals {
     ) if var.rotation_lambda_name == ""
   }
   user_secrets_data_merged = {
-    for key, user in var.users : key => merge(local.user_secrets_data[key],
-      try(user.connection_string_type, "") == "jdbc" ? {
-        connection_string_type = user.connection_string_type
+    for key, user_secret in local.user_secrets_data : key => merge(user_secret,
+      try(var.users[key].connection_string_type, "") == "jdbc" ? {
+        connection_string_type = var.users[key].connection_string_type
         connection_string = format("jdbc:postgresql://%s:%s/%s?user=%s&password=%s&ssl=true&sslmode=%s&schema=%s",
-          local.user_secrets_data[key].host, local.user_secrets_data[key].port, local.user_secrets_data[key].dbname,
-          local.user_secrets_data[key].username, local.user_secrets_data[key].password, local.user_secrets_data[key].sslmode,
-        try(user.schema, "public"))
+          user_secret.host, user_secret.port, user_secret.dbname,
+          user_secret.username, urlencode(user_secret.password), user_secret.sslmode,
+        try(var.users[key].schema, "public"))
       } : {},
-      try(user.connection_string_type, "") == "dotnet" ? {
-        connection_string_type = user.connection_string_type
+      try(var.users[key].connection_string_type, "") == "dotnet" ? {
+        connection_string_type = var.users[key].connection_string_type
         connection_string = format("Host=%s;Port=%s;Database=%s;Username=%s;Password=%s;SSL Mode=%s;Search Path=%s",
-          local.user_secrets_data[key].host, local.user_secrets_data[key].local.user_secrets_data[key],
-          local.user_secrets_data[key].dbname, local.user_secrets_data[key].username, local.user_secrets_data[key].password,
-        local.user_secrets_data[key].sslmode, try(user.schema, "public"))
+          user_secret.host, user_secret.user_secret,
+          user_secret.dbname, user_secret.username, urlencode(user_secret.password),
+        user_secret.sslmode, try(var.users[key].schema, "public"))
       } : {},
-      try(user.connection_string_type, "") == "odbc" ? {
-        connection_string_type = user.connection_string_type
+      try(var.users[key].connection_string_type, "") == "odbc" ? {
+        connection_string_type = var.users[key].connection_string_type
         connection_string = format("Driver={PostgreSQL ODBC Driver(UNICODE)};Server=%s;Port=%s;Database=%s;UID=%s;PWD=%s;sslmode=%s;schema=%s",
-          local.user_secrets_data[key].host, local.user_secrets_data[key].port, local.user_secrets_data[key].dbname,
-          local.user_secrets_data[key].username, local.user_secrets_data[key].password, local.user_secrets_data[key].sslmode,
-        try(user.schema, "public"))
+          user_secret.host, user_secret.port, user_secret.dbname,
+          user_secret.username, urlencode(user_secret.password), user_secret.sslmode,
+        try(var.users[key].schema, "public"))
       } : {},
-      try(user.connection_string_type, "") == "gopq" ? {
-        connection_string_type = user.connection_string_type
+      try(var.users[key].connection_string_type, "") == "gopq" ? {
+        connection_string_type = var.users[key].connection_string_type
         connection_string = format("postgres://%s:%s@%s:%s/%s?sslmode=%s&schema=%s",
-          local.user_secrets_data[key].username, local.user_secrets_data[key].password, local.user_secrets_data[key].host,
-          local.user_secrets_data[key].port, local.user_secrets_data[key].dbname, local.user_secrets_data[key].sslmode,
-        try(user.schema, "public"))
+          user_secret.username, urlencode(user_secret.password), user_secret.host,
+          user_secret.port, user_secret.dbname, user_secret.sslmode,
+        try(var.users[key].schema, "public"))
       } : {},
-      length(regexall("node-pg|psycopg|rustpg", try(user.connection_string_type, ""))) > 0 ? {
-        connection_string_type = user.connection_string_type
+      length(regexall("node-pg|psycopg|rustpg", try(var.users[key].connection_string_type, ""))) > 0 ? {
+        connection_string_type = var.users[key].connection_string_type
         connection_string = format("postgresql://%s:%s@%s:%s/%s?sslmode=%s&schema=%s",
-          local.user_secrets_data[key].username, local.user_secrets_data[key].password, local.user_secrets_data[key].host,
-          local.user_secrets_data[key].port, local.user_secrets_data[key].dbname, local.user_secrets_data[key].sslmode,
-        try(user.schema, "public"))
+          user_secret.username, urlencode(user_secret.password), user_secret.host,
+          user_secret.port, user_secret.dbname, user_secret.sslmode,
+        try(var.users[key].schema, "public"))
       } : {}
     )
   }
@@ -109,41 +109,41 @@ locals {
     ) if var.rotation_lambda_name != ""
   }
   user_rotated_secrets_data_merged = {
-    for key, user in var.users : key => merge(local.user_rotated_secrets_data[key],
-      try(user.connection_string_type, "") == "jdbc" ? {
-        connection_string_type = user.connection_string_type
+    for key, user_secret in local.user_rotated_secrets_data : key => merge(user_secret,
+      try(var.users[key].connection_string_type, "") == "jdbc" ? {
+        connection_string_type = var.users[key].connection_string_type
         connection_string = format("jdbc:postgresql://%s:%s/%s?user=%s&password=%s&ssl=true&sslmode=%s&schema=%s",
-          local.user_rotated_secrets_data[key].host, local.user_rotated_secrets_data[key].port, local.user_rotated_secrets_data[key].dbname,
-          local.user_rotated_secrets_data[key].username, local.user_rotated_secrets_data[key].password, local.user_rotated_secrets_data[key].sslmode,
-        try(user.schema, "public"))
+          user_secret.host, user_secret.port, user_secret.dbname,
+          user_secret.username, urlencode(user_secret.password), user_secret.sslmode,
+        try(var.users[key].schema, "public"))
       } : {},
-      try(user.connection_string_type, "") == "dotnet" ? {
-        connection_string_type = user.connection_string_type
+      try(var.users[key].connection_string_type, "") == "dotnet" ? {
+        connection_string_type = var.users[key].connection_string_type
         connection_string = format("Host=%s;Port=%s;Database=%s;Username=%s;Password=%s;SSL Mode=%s;Search Path=%s",
-          local.user_rotated_secrets_data[key].host, local.user_rotated_secrets_data[key].local.user_rotated_secrets_data[key],
-          local.user_rotated_secrets_data[key].dbname, local.user_rotated_secrets_data[key].username, local.user_rotated_secrets_data[key].password,
-        local.user_rotated_secrets_data[key].sslmode, try(user.schema, "public"))
+          user_secret.host, user_secret.port,
+          user_secret.dbname, user_secret.username, urlencode(user_secret.password),
+        user_secret.sslmode, try(var.users[key].schema, "public"))
       } : {},
-      try(user.connection_string_type, "") == "odbc" ? {
-        connection_string_type = user.connection_string_type
+      try(var.users[key].connection_string_type, "") == "odbc" ? {
+        connection_string_type = var.users[key].connection_string_type
         connection_string = format("Driver={PostgreSQL ODBC Driver(UNICODE)};Server=%s;Port=%s;Database=%s;UID=%s;PWD=%s;sslmode=%s;schema=%s",
-          local.user_rotated_secrets_data[key].host, local.user_rotated_secrets_data[key].port, local.user_rotated_secrets_data[key].dbname,
-          local.user_rotated_secrets_data[key].username, local.user_rotated_secrets_data[key].password, local.user_rotated_secrets_data[key].sslmode,
-        try(user.schema, "public"))
+          user_secret.host, user_secret.port, user_secret.dbname,
+          user_secret.username, urlencode(user_secret.password), user_secret.sslmode,
+        try(var.users[key].schema, "public"))
       } : {},
-      try(user.connection_string_type, "") == "gopq" ? {
-        connection_string_type = user.connection_string_type
+      try(var.users[key].connection_string_type, "") == "gopq" ? {
+        connection_string_type = var.users[key].connection_string_type
         connection_string = format("postgres://%s:%s@%s:%s/%s?sslmode=%s&schema=%s",
-          local.user_rotated_secrets_data[key].username, local.user_rotated_secrets_data[key].password, local.user_rotated_secrets_data[key].host,
-          local.user_rotated_secrets_data[key].port, local.user_rotated_secrets_data[key].dbname, local.user_rotated_secrets_data[key].sslmode,
-        try(user.schema, "public"))
+          user_secret.username, urlencode(user_secret.password), user_secret.host,
+          user_secret.port, user_secret.dbname, user_secret.sslmode,
+        try(var.users[key].schema, "public"))
       } : {},
-      length(regexall("node-pg|psycopg|rustpg", try(user.connection_string_type, ""))) > 0 ? {
-        connection_string_type = user.connection_string_type
+      length(regexall("node-pg|psycopg|rustpg", try(var.users[key].connection_string_type, ""))) > 0 ? {
+        connection_string_type = var.users[key].connection_string_type
         connection_string = format("postgresql://%s:%s@%s:%s/%s?sslmode=%s&schema=%s",
-          local.user_rotated_secrets_data[key].username, local.user_rotated_secrets_data[key].password, local.user_rotated_secrets_data[key].host,
-          local.user_rotated_secrets_data[key].port, local.user_rotated_secrets_data[key].dbname, local.user_rotated_secrets_data[key].sslmode,
-        try(user.schema, "public"))
+          user_secret.username, urlencode(user_secret.password), user_secret.host,
+          user_secret.port, user_secret.dbname, user_secret.sslmode,
+        try(var.users[key].schema, "public"))
       } : {}
     )
   }
@@ -204,7 +204,6 @@ resource "aws_secretsmanager_secret_version" "user_rotated" {
   lifecycle {
     ignore_changes = [
       secret_string,
-
     ]
   }
 }
