@@ -23,7 +23,132 @@ locals {
       replace(v.name, "_", "-")
     )
   }
+  user_secrets_data = {
+    for key, user in var.users : key => merge({
+      username = user.name
+      password = random_password.user[key].result
+      host = local.hoop_connect ? (
+        try(var.hoop.cluster, false) ? data.aws_rds_cluster.hoop_db_server[0].endpoint :
+        data.aws_db_instance.hoop_db_server[0].address
+      ) : local.psql.host
+      port = local.hoop_connect ? (
+        try(var.hoop.cluster, false) ? data.aws_rds_cluster.hoop_db_server[0].port :
+        data.aws_db_instance.hoop_db_server[0].port
+      ) : local.psql.port
+      dbname  = try(user.db_ref, "") != "" ? postgresql_database.this[user.db_ref].name : user.database_name
+      sslmode = local.hoop_connect ? var.hoop.default_sslmode : "require"
+      engine  = local.psql.engine
+      },
+      length(data.aws_secretsmanager_secret.db_password) > 0 ? {
+        masterarn = data.aws_secretsmanager_secret.db_password[0].arn
+      } : {}
+    ) if var.rotation_lambda_name == ""
+  }
+  user_secrets_data_merged = {
+    for key, user_secret in local.user_secrets_data : key => merge(user_secret,
+      try(var.users[key].connection_string_type, "") == "jdbc" ? {
+        connection_string_type = var.users[key].connection_string_type
+        connection_string = format("jdbc:postgresql://%s:%s/%s?user=%s&password=%s&ssl=true&sslmode=%s&schema=%s",
+          user_secret.host, user_secret.port, user_secret.dbname,
+          user_secret.username, urlencode(user_secret.password), user_secret.sslmode,
+        try(var.users[key].schema, "public"))
+      } : {},
+      try(var.users[key].connection_string_type, "") == "dotnet" ? {
+        connection_string_type = var.users[key].connection_string_type
+        connection_string = format("Host=%s;Port=%s;Database=%s;Username=%s;Password=%s;SSL Mode=%s;Search Path=%s",
+          user_secret.host, user_secret.user_secret,
+          user_secret.dbname, user_secret.username, urlencode(user_secret.password),
+        user_secret.sslmode, try(var.users[key].schema, "public"))
+      } : {},
+      try(var.users[key].connection_string_type, "") == "odbc" ? {
+        connection_string_type = var.users[key].connection_string_type
+        connection_string = format("Driver={PostgreSQL ODBC Driver(UNICODE)};Server=%s;Port=%s;Database=%s;UID=%s;PWD=%s;sslmode=%s;schema=%s",
+          user_secret.host, user_secret.port, user_secret.dbname,
+          user_secret.username, urlencode(user_secret.password), user_secret.sslmode,
+        try(var.users[key].schema, "public"))
+      } : {},
+      try(var.users[key].connection_string_type, "") == "gopq" ? {
+        connection_string_type = var.users[key].connection_string_type
+        connection_string = format("postgres://%s:%s@%s:%s/%s?sslmode=%s&schema=%s",
+          user_secret.username, urlencode(user_secret.password), user_secret.host,
+          user_secret.port, user_secret.dbname, user_secret.sslmode,
+        try(var.users[key].schema, "public"))
+      } : {},
+      length(regexall("node-pg|psycopg|rustpg", try(var.users[key].connection_string_type, ""))) > 0 ? {
+        connection_string_type = var.users[key].connection_string_type
+        connection_string = format("postgresql://%s:%s@%s:%s/%s?sslmode=%s&schema=%s",
+          user_secret.username, urlencode(user_secret.password), user_secret.host,
+          user_secret.port, user_secret.dbname, user_secret.sslmode,
+        try(var.users[key].schema, "public"))
+      } : {}
+    )
+  }
+  user_rotated_secrets_data = {
+    for key, user in var.users : key => merge({
+      username = user.name
+      password = (
+        try(length(data.aws_secretsmanager_secret_versions.user_rotated[key].versions), 0) > 0 && !var.force_reset ?
+        jsondecode(data.aws_secretsmanager_secret_version.user_rotated[key].secret_string)["password"] :
+        random_password.user_initial[key].result
+      )
+      host = local.hoop_connect ? (
+        try(var.hoop.cluster, false) ? data.aws_rds_cluster.hoop_db_server[0].endpoint :
+        data.aws_db_instance.hoop_db_server[0].address
+      ) : local.psql.host
+      port = local.hoop_connect ? (
+        try(var.hoop.cluster, false) ? data.aws_rds_cluster.hoop_db_server[0].port :
+        data.aws_db_instance.hoop_db_server[0].port
+      ) : local.psql.port
+      dbname  = try(user.db_ref, "") != "" ? postgresql_database.this[user.db_ref].name : user.database_name
+      sslmode = local.hoop_connect ? var.hoop.default_sslmode : "require"
+      engine  = local.psql.engine
+      },
+      length(data.aws_secretsmanager_secret.db_password) > 0 ? {
+        masterarn = data.aws_secretsmanager_secret.db_password[0].arn
+      } : {}
+    ) if var.rotation_lambda_name != ""
+  }
+  user_rotated_secrets_data_merged = {
+    for key, user_secret in local.user_rotated_secrets_data : key => merge(user_secret,
+      try(var.users[key].connection_string_type, "") == "jdbc" ? {
+        connection_string_type = var.users[key].connection_string_type
+        connection_string = format("jdbc:postgresql://%s:%s/%s?user=%s&password=%s&ssl=true&sslmode=%s&schema=%s",
+          user_secret.host, user_secret.port, user_secret.dbname,
+          user_secret.username, urlencode(user_secret.password), user_secret.sslmode,
+        try(var.users[key].schema, "public"))
+      } : {},
+      try(var.users[key].connection_string_type, "") == "dotnet" ? {
+        connection_string_type = var.users[key].connection_string_type
+        connection_string = format("Host=%s;Port=%s;Database=%s;Username=%s;Password=%s;SSL Mode=%s;Search Path=%s",
+          user_secret.host, user_secret.port,
+          user_secret.dbname, user_secret.username, urlencode(user_secret.password),
+        user_secret.sslmode, try(var.users[key].schema, "public"))
+      } : {},
+      try(var.users[key].connection_string_type, "") == "odbc" ? {
+        connection_string_type = var.users[key].connection_string_type
+        connection_string = format("Driver={PostgreSQL ODBC Driver(UNICODE)};Server=%s;Port=%s;Database=%s;UID=%s;PWD=%s;sslmode=%s;schema=%s",
+          user_secret.host, user_secret.port, user_secret.dbname,
+          user_secret.username, urlencode(user_secret.password), user_secret.sslmode,
+        try(var.users[key].schema, "public"))
+      } : {},
+      try(var.users[key].connection_string_type, "") == "gopq" ? {
+        connection_string_type = var.users[key].connection_string_type
+        connection_string = format("postgres://%s:%s@%s:%s/%s?sslmode=%s&schema=%s",
+          user_secret.username, urlencode(user_secret.password), user_secret.host,
+          user_secret.port, user_secret.dbname, user_secret.sslmode,
+        try(var.users[key].schema, "public"))
+      } : {},
+      length(regexall("node-pg|psycopg|rustpg", try(var.users[key].connection_string_type, ""))) > 0 ? {
+        connection_string_type = var.users[key].connection_string_type
+        connection_string = format("postgresql://%s:%s@%s:%s/%s?sslmode=%s&schema=%s",
+          user_secret.username, urlencode(user_secret.password), user_secret.host,
+          user_secret.port, user_secret.dbname, user_secret.sslmode,
+        try(var.users[key].schema, "public"))
+      } : {}
+    )
+  }
 }
+
 resource "aws_secretsmanager_secret" "user" {
   for_each    = var.users
   name        = local.user_names_list[each.key]
@@ -40,31 +165,9 @@ resource "aws_secretsmanager_secret" "user" {
 }
 
 resource "aws_secretsmanager_secret_version" "user" {
-  for_each = {
-    for k, v in var.users : k => v if var.rotation_lambda_name == ""
-  }
-  secret_id = aws_secretsmanager_secret.user[each.key].id
-  secret_string = jsonencode(merge(
-    {
-      username = each.value.name
-      password = random_password.user[each.key].result
-      host = local.hoop_connect ? (
-        try(var.hoop.cluster, false) ? data.aws_rds_cluster.hoop_db_server[0].endpoint :
-        data.aws_db_instance.hoop_db_server[0].address
-      ) : local.psql.host
-      port = local.hoop_connect ? (
-        try(var.hoop.cluster, false) ? data.aws_rds_cluster.hoop_db_server[0].port :
-        data.aws_db_instance.hoop_db_server[0].port
-      ) : local.psql.port
-      dbname  = try(each.value.db_ref, "") != "" ? postgresql_database.this[each.value.db_ref].name : each.value.database_name
-      sslmode = local.hoop_connect ? var.hoop.default_sslmode : "require"
-      engine  = local.psql.engine
-    },
-    length(data.aws_secretsmanager_secret.db_password) > 0 ? {
-      masterarn = data.aws_secretsmanager_secret.db_password[0].arn
-    } : {}
-    )
-  )
+  for_each      = local.user_secrets_data_merged
+  secret_id     = aws_secretsmanager_secret.user[each.key].id
+  secret_string = jsonencode(each.value)
 }
 
 data "aws_secretsmanager_secrets" "user" {
@@ -95,39 +198,12 @@ data "aws_secretsmanager_secret_version" "user_rotated" {
 }
 
 resource "aws_secretsmanager_secret_version" "user_rotated" {
-  for_each = {
-    for k, v in var.users : k => v if var.rotation_lambda_name != ""
-  }
-  secret_id = aws_secretsmanager_secret.user[each.key].id
-  secret_string = jsonencode(merge(
-    {
-      username = each.value.name
-      password = (
-        try(length(data.aws_secretsmanager_secret_versions.user_rotated[each.key].versions), 0) > 0 && !var.force_reset ?
-        jsondecode(data.aws_secretsmanager_secret_version.user_rotated[each.key].secret_string)["password"] :
-        random_password.user_initial[each.key].result
-      )
-      host = local.hoop_connect ? (
-        try(var.hoop.cluster, false) ? data.aws_rds_cluster.hoop_db_server[0].endpoint :
-        data.aws_db_instance.hoop_db_server[0].address
-      ) : local.psql.host
-      port = local.hoop_connect ? (
-        try(var.hoop.cluster, false) ? data.aws_rds_cluster.hoop_db_server[0].port :
-        data.aws_db_instance.hoop_db_server[0].port
-      ) : local.psql.port
-      dbname  = try(each.value.db_ref, "") != "" ? postgresql_database.this[each.value.db_ref].name : each.value.database_name
-      sslmode = local.hoop_connect ? var.hoop.default_sslmode : "require"
-      engine  = local.psql.engine
-    },
-    length(data.aws_secretsmanager_secret.db_password) > 0 ? {
-      masterarn = data.aws_secretsmanager_secret.db_password[0].arn
-    } : {}
-    )
-  )
+  for_each      = local.user_rotated_secrets_data_merged
+  secret_id     = aws_secretsmanager_secret.user[each.key].id
+  secret_string = jsonencode(each.value)
   lifecycle {
     ignore_changes = [
       secret_string,
-
     ]
   }
 }
