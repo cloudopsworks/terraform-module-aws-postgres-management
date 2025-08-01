@@ -22,6 +22,7 @@ hoop admin create connection ${local.psql.server_name}-${postgresql_database.thi
   -e "SSLMODE=${try(var.hoop.default_sslmode, "require")}" \
   --overwrite ${local.hoop_tags}
 EOT
+    if try(db.create_owner, false)
   } : null
   hoop_connection_users = try(var.hoop.enabled, false) && strcontains(local.psql.engine, "postgres") ? {
     for key, role_user in postgresql_role.user : key => <<EOT
