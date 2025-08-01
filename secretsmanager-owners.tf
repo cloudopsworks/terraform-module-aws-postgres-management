@@ -75,14 +75,14 @@ data "aws_secretsmanager_secrets" "owner" {
 
 data "aws_secretsmanager_secret_versions" "owner_rotated" {
   for_each = {
-  for key, db in var.databases : key => db if try(db.create_owner, false) && var.rotation_lambda_name != "" && length(data.aws_secretsmanager_secrets.owner[key].names) > 0 }
+  for key, db in var.databases : key => db if try(db.create_owner, false) && var.rotation_lambda_name != "" && length(try(data.aws_secretsmanager_secrets.owner[key].names, [])) > 0 }
   secret_id          = local.owner_name_list[each.key]
   include_deprecated = true
 }
 
 data "aws_secretsmanager_secret_version" "owner_rotated" {
   for_each = {
-    for key, db in var.databases : key => db if try(db.create_owner, false) && var.rotation_lambda_name != "" && length(data.aws_secretsmanager_secrets.owner[key].names) > 0 && try(length(data.aws_secretsmanager_secret_versions.owner_rotated[key].versions), 0) > 0
+    for key, db in var.databases : key => db if try(db.create_owner, false) && var.rotation_lambda_name != "" && length(try(data.aws_secretsmanager_secrets.owner[key].names, [])) > 0 && length(try(data.aws_secretsmanager_secret_versions.owner_rotated[key].versions, [])) > 0
   }
   secret_id = local.owner_name_list[each.key]
 }
