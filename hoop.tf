@@ -25,8 +25,8 @@ EOT
     if try(db.create_owner, false)
   } : null
   hoop_connection_users = try(var.hoop.enabled, false) && strcontains(local.psql.engine, "postgres") ? {
-    for key, role_user in postgresql_role.user : key => <<EOT
-hoop admin create connection ${local.psql.server_name}-${(try(var.users[key].db_ref, "") != "" ? postgresql_database.this[var.users[key].db_ref].name : var.users[key].database_name)}-${role_user.name} \
+    for key, role_user in var.users : key => <<EOT
+hoop admin create connection ${local.psql.server_name}-${(try(role_user.db_ref, "") != "" ? postgresql_database.this[role_user.db_ref].name : role_user.database_name)}-${role_user.name} \
   --agent ${var.hoop.agent} \
   --type database/postgres \
   -e "HOST=_aws:${aws_secretsmanager_secret.user[key].name}:host" \
