@@ -32,6 +32,7 @@ resource "aws_secretsmanager_secret" "owner" {
   }
   name        = local.owner_name_list[each.key]
   description = "RDS Owner credentials - ${local.owner_list[each.key]} - ${local.psql.engine} - ${local.psql.server_name} - ${postgresql_database.this[each.key].name}"
+  kms_key_id  = var.secrets_kms_key_id
   tags = merge(local.all_tags, {
     "rds-username"        = local.owner_list[each.key]
     "rds-datatabase-name" = postgresql_database.this[each.key].name
