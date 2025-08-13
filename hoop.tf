@@ -23,7 +23,7 @@ hoop admin create connection ${local.psql.server_name}-${postgresql_database.thi
   --overwrite ${local.hoop_tags}
 EOT
     if try(db.create_owner, false)
-  } : null
+  } : {}
   hoop_connection_users = try(var.hoop.enabled, false) && strcontains(local.psql.engine, "postgres") ? {
     for key, role_user in var.users : key => <<EOT
 hoop admin create connection ${local.psql.server_name}-${(try(role_user.db_ref, "") != "" ? postgresql_database.this[role_user.db_ref].name : role_user.database_name)}-${role_user.name} \
@@ -37,7 +37,7 @@ hoop admin create connection ${local.psql.server_name}-${(try(role_user.db_ref, 
   -e "SSLMODE=${try(var.hoop.default_sslmode, "require")}" \
   --overwrite ${local.hoop_tags}
 EOT
-  } : null
+  } : {}
 }
 
 resource "null_resource" "hoop_connection_owners" {
