@@ -61,6 +61,8 @@ locals {
   direct_psql = !try(var.rds.enabled, false) && !local.hoop_connect ? {
     server_name = var.direct.server_name
     host        = var.direct.host
+    jump_host   = try(var.direct.jump_host, "")
+    jump_port   = try(var.direct.jump_port, "")
     port        = var.direct.port
     username    = var.direct.username
     password    = var.direct.password
@@ -80,8 +82,8 @@ locals {
 }
 
 provider "postgresql" {
-  host              = local.psql.host
-  port              = local.psql.port
+  host              = try(local.psql.jump_host, "") != "" ? local.psql.jump_host : local.psql.host
+  port              = try(local.psql.jump_port, "") != "" ? local.psql.jump_port : local.psql.port
   username          = local.psql.username
   password          = local.psql.password
   database          = local.psql.db_name
