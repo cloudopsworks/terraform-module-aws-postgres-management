@@ -7,11 +7,12 @@
 #     Distributed Under Apache v2.0 License
 #
 
-resource "hoop_connection" "owners" {
+module "hoop_owners" {
   for_each = {
     for key, db in var.databases : key => db
     if try(db.create_owner, false) && try(var.hoop.enabled, false) && try(var.hoop.agent_id, "") != ""
   }
+  source   = "./hoop"
   name     = format("%s-%s-ow", local.psql.server_name, postgresql_database.this[each.key].name)
   type     = "database"
   subtype  = "postgres"
@@ -24,33 +25,22 @@ resource "hoop_connection" "owners" {
     "envvar:DB"      = "_aws:${aws_secretsmanager_secret.owner[each.key].name}:dbname"
     "envvar:SSLMODE" = try(var.hoop.default_sslmode, "require")
   }
-  access_mode_connect  = "enabled"
-  access_mode_exec     = "enabled"
-  access_mode_runbooks = "enabled"
-  access_schema        = "enabled"
-  tags                 = var.hoop.tags
-  lifecycle {
-    ignore_changes = [
-      command,
-    ]
+  access_modes = {
+    connect  = "enabled"
+    exec     = "enabled"
+    runbooks = "enabled"
+    schema   = "enabled"
   }
+  tags           = var.hoop.tags
+  access_control = setunion(toset(try(var.hoop.access_control, [])), toset(try(each.value.hoop.access_control, [])))
 }
 
-resource "hoop_plugin_connection" "owner_access_control" {
-  for_each = {
-    for key, db in var.databases : key => db
-    if try(db.create_owner, false) && try(var.hoop.enabled, false) && try(var.hoop.agent_id, "") != "" && (length(try(var.hoop.access_control, [])) > 0 || length(try(db.hoop.access_control, [])) > 0)
-  }
-  connection_id = hoop_connection.owners[each.key].id
-  plugin_name   = "access_control"
-  config        = setunion(toset(try(var.hoop.access_control, [])), toset(try(each.value.hoop.access_control, [])))
-}
-
-resource "hoop_connection" "users" {
+module "hoop_users" {
   for_each = {
     for key, role_user in var.users : key => role_user
     if try(var.hoop.enabled, false) && try(var.hoop.agent_id, "") != ""
   }
+  source = "./hoop"
   name = format("%s-%s-%s",
     local.psql.server_name,
     (try(each.value.db_ref, "") != "" ? postgresql_database.this[each.value.db_ref].name : each.value.database_name),
@@ -66,24 +56,12 @@ resource "hoop_connection" "users" {
     "envvar:DB"      = "_aws:${aws_secretsmanager_secret.user[each.key].name}:dbname"
     "envvar:SSLMODE" = try(var.hoop.default_sslmode, "require")
   }
-  access_mode_connect  = "enabled"
-  access_mode_exec     = "enabled"
-  access_mode_runbooks = "enabled"
-  access_schema        = "enabled"
-  tags                 = var.hoop.tags
-  lifecycle {
-    ignore_changes = [
-      command,
-    ]
+  access_modes = {
+    connect  = "enabled"
+    exec     = "enabled"
+    runbooks = "enabled"
+    schema   = "enabled"
   }
-}
-
-resource "hoop_plugin_connection" "user_access_control" {
-  for_each = {
-    for key, role_user in var.users : key => role_user
-    if try(var.hoop.enabled, false) && try(var.hoop.agent_id, "") != "" && (length(try(var.hoop.access_control, [])) > 0 || length(try(role_user.hoop.access_control, [])) > 0)
-  }
-  connection_id = hoop_connection.users[each.key].id
-  plugin_name   = "access_control"
-  config        = setunion(toset(try(var.hoop.access_control, [])), toset(try(each.value.hoop.access_control, [])))
+  tags           = var.hoop.tags
+  access_control = setunion(toset(try(var.hoop.access_control, [])), toset(try(each.value.hoop.access_control, [])))
 }
