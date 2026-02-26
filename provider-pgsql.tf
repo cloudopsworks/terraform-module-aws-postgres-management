@@ -91,4 +91,5 @@ provider "postgresql" {
   sslmode           = local.psql.sslmode
   connect_timeout   = 60
   superuser         = local.psql.superuser
+  scheme            = strcontains(local.psql.engine, "aurora") ? "awspostgres" : "postgres"
 }
