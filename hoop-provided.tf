@@ -29,6 +29,11 @@ resource "hoop_connection" "owners" {
   access_mode_runbooks = "enabled"
   access_schema        = "enabled"
   tags                 = var.hoop.tags
+  lifecycle {
+    ignore_changes = [
+      command,
+    ]
+  }
 }
 
 resource "hoop_plugin_connection" "owner_access_control" {
@@ -66,6 +71,11 @@ resource "hoop_connection" "users" {
   access_mode_runbooks = "enabled"
   access_schema        = "enabled"
   tags                 = var.hoop.tags
+  lifecycle {
+    ignore_changes = [
+      command,
+    ]
+  }
 }
 
 resource "hoop_plugin_connection" "user_access_control" {
