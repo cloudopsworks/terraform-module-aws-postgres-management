@@ -45,6 +45,14 @@ resource "random_password" "user_initial" {
   min_lower        = 2
 }
 
+import {
+  for_each = {
+    for k, user in var.users : k => user if try(user.import, false)
+  }
+  to = postgresql_role.user[each.key]
+  id = each.value.name
+}
+
 resource "postgresql_role" "user" {
   for_each = var.users
   name     = each.value.name
