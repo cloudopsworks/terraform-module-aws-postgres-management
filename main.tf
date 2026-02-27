@@ -13,6 +13,14 @@ locals {
   }
 }
 
+import {
+  for_each = {
+    for k, db in var.databases : k => db if try(db.import, false)
+  }
+  to = postgresql_database.this[each.key]
+  id = each.value.name
+}
+
 resource "postgresql_database" "this" {
   depends_on             = [postgresql_role.owner]
   for_each               = var.databases
@@ -64,6 +72,14 @@ resource "random_password" "owner_initial" {
   min_special      = 2
   min_numeric      = 2
   min_lower        = 2
+}
+
+import {
+  for_each = {
+    for k, db in var.databases : k => db if try(db.import, false) && try(db.create_owner, false)
+  }
+  to = postgresql_role.owner[each.key]
+  id = local.owner_list[each.key]
 }
 
 resource "postgresql_role" "owner" {

@@ -7,5 +7,13 @@
 #     Distributed Under Apache v2.0 License
 #
 
-provider "hoop" {
+terraform {
+  required_version = ">= 1.3"
+  # Complete with required providers for the module
+  required_providers {
+    hoop = {
+      source  = "hoophq/hoop"
+      version = "~> 0.0.18"
+    }
+  }
 }
