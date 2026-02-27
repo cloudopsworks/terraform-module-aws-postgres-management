@@ -66,7 +66,7 @@ locals {
     port        = var.direct.port
     username    = var.direct.username
     password    = var.direct.password
-    engine      = var.direct.engine
+    engine      = try(var.direct.engine, "posrtgres")
     admin_user  = var.direct.username
     db_name     = var.direct.db_name
     sslmode     = var.direct.sslmode
