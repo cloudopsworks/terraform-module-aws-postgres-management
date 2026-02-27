@@ -10,18 +10,23 @@
 ## Users definition - YAML format
 # users:
 #   <user_ref>:
-#     name: <name> # (required) Name of the user
-#     grant: owner | readwrite | readonly # (required) Grant type for the user
-#     db_ref: <db_ref> # (optional) Reference to the database this user is associated with, dafaults to the default dbname of server
-#     database_name: <database_name> # (optional) Name of the database this user is associated with, dafaults to the default dbname of server
-#     schema: <schema> # (optional) Schema this user is associated with, defaults to public
-#     login: true | false # (optional) If the user can login, defaults to true
-#     superuser: true | false # (optional) If the user is a superuser, defaults to false
-#     create_database: true | false # (optional) If the user can create databases, defaults to false
-#     replication: true | false # (optional) If the user can replicate, defaults to false
-#     encrypted_password: true | false # (optional) If the password is encrypted, defaults to true
-#     inherit: true | false # (optional) If the user inherits privileges from the parent role, defaults to true
-#     create_role: true | false # (optional) If the user can create roles, defaults to false
+#     name: "username"               # (Required) Name of the user.
+#     grant: "owner"                 # (Required) Grant type for the user. Possible values: owner, readwrite, readonly.
+#     db_ref: "db_ref"               # (Optional) Reference to the database this user is associated with. Defaults to the default dbname of server.
+#     database_name: "dbname"        # (Optional) Name of the database this user is associated with. Defaults to the default dbname of server.
+#     database_owner: "dbname_ow"    # (Conditionally Required) Owner role to grant when grant=owner and no db_ref is provided. No default.
+#     schema: "public"               # (Optional) Schema this user is associated with. Defaults to public.
+#     login: true                    # (Optional) If the user can login. Defaults to true.
+#     superuser: false               # (Optional) If the user is a superuser. Defaults to false.
+#     create_database: false         # (Optional) If the user can create databases. Defaults to false.
+#     replication: false             # (Optional) If the user can replicate. Defaults to false.
+#     encrypted_password: true       # (Optional) If the password is encrypted. Defaults to true.
+#     inherit: true                  # (Optional) If the user inherits privileges from the parent role. Defaults to true.
+#     create_role: false             # (Optional) If the user can create roles. Defaults to false.
+#     connection_limit: -1           # (Optional) Connection limit for the user. Defaults to -1 (no limit).
+#     import: false                  # (Optional) If the user should be imported. Defaults to false.
+#     hoop:                          # (Optional) Hoop settings for the user.
+#       access_control: ["group"]    # (Optional) List of access control groups for hoop. Defaults to [].
 variable "users" {
   description = "Users and user attributes - see docs for example"
   type        = any
@@ -29,17 +34,19 @@ variable "users" {
 }
 
 ## Roles definition - YAML format
-# users:
-#   <user_ref>:
-#     name: <name> # (required) Name of the user
-#     grant: owner | readwrite | readonly # (required) Grant type for the user
-#     db_ref: <db_ref> # (optional) Reference to the database this user is associated with, dafaults to the default dbname of server
-#     database_name: <database_name> # (optional) Name of the database this user is associated with, dafaults to the default dbname of server
-#     schema: <schema> # (optional) Schema this user is associated with, defaults to public
-#     create_database: true | false # (optional) If the user can create databases, defaults to false
-#     replication: true | false # (optional) If the user can replicate, defaults to false
-#     inherit: true | false # (optional) If the user inherits privileges from the parent role, defaults to true
-#     create_role: true | false # (optional) If the user can create roles, defaults to false
+# roles:
+#   <role_ref>:
+#     name: "rolename"               # (Required) Name of the role.
+#     grant: "owner"                 # (Required) Grant type for the role. Possible values: owner, readwrite, readonly.
+#     db_ref: "db_ref"               # (Optional) Reference to the database this role is associated with. Defaults to the default dbname of server.
+#     database_name: "dbname"        # (Optional) Name of the database this role is associated with. Defaults to the default dbname of server.
+#     schema: "public"               # (Optional) Schema this role is associated with. Defaults to public.
+#     create_database: false         # (Optional) If the role can create databases. Defaults to false.
+#     replication: false             # (Optional) If the role can replicate. Defaults to false.
+#     inherit: true                  # (Optional) If the role inherits privileges from the parent role. Defaults to true.
+#     create_role: false             # (Optional) If the role can create roles. Defaults to false.
+#     connection_limit: -1           # (Optional) Connection limit for the role. Defaults to -1 (no limit).
+#     import: false                  # (Optional) If the role should be imported. Defaults to false.
 variable "roles" {
   description = "Roles and role attributes - see docs for example"
   type        = any
@@ -49,22 +56,25 @@ variable "roles" {
 ## Databases definition - YAML format
 # databases:
 #   <db_ref>:
-#     name: <name> # (required) Name of the database
-#     create_owner: true | false # (optional) If the database should be created with an owner, defaults to false
-#     owner: <owner> # (optional) Owner of the database, required if create_owner is false
-#     collate: <collate> # (optional) Collate of the database, defaults to en_US.UTF-8
-#     ctype: <ctype> # (optional) Ctype of the database, defaults to en_US.UTF-8
-#     connection_limit: <connection_limit> # (optional) Connection limit for the database, defaults to -1 (no limit)
-#     is_template: true | false # (optional) If the database is a template, defaults to false
-#     from_template: <from_template> # (optional) Name of the template to use for the database, defaults to template0
-#     encoding: <encoding> # (optional) Encoding of the database, defaults to UTF8
-#     allow_connections: true | false # (optional) If the database allows connections, defaults to true
-#     alter_object_ownership: true | false # (optional) If the database should alter object ownership, defaults to false
-#     schemas:       # (optional) List of schemas to create in the database, defaults to empty list
-#       - name: <schema_name>
-#         owner: <schema_owner> # (optional) Owner of the schema, can be user_ref or name, defaults to the database owner
-#         reuse: true | false # (optional) If the schema should be reused if it already exists, defaults to true
-#         cascade_on_delete: true | false # (optional) If the schema should be deleted with cascade, defaults to false
+#     name: "dbname"                 # (Required) Name of the database.
+#     create_owner: false            # (Optional) If the database should be created with an owner. Defaults to false.
+#     owner: "ownername"             # (Optional) Owner of the database, required if create_owner is false.
+#     collate: "en_US.UTF-8"         # (Optional) Collate of the database. Defaults to en_US.UTF-8.
+#     ctype: "en_US.UTF-8"           # (Optional) Ctype of the database. Defaults to en_US.UTF-8.
+#     connection_limit: -1           # (Optional) Connection limit for the database. Defaults to -1 (no limit).
+#     is_template: false             # (Optional) If the database is a template. Defaults to false.
+#     template: "template0"          # (Optional) Name of the template to use for the database. Defaults to template0.
+#     encoding: "UTF8"               # (Optional) Encoding of the database. Defaults to UTF8.
+#     allow_connections: true        # (Optional) If the database allows connections. Defaults to true.
+#     alter_object_ownership: false  # (Optional) If the database should alter object ownership. Defaults to false.
+#     import: false                  # (Optional) If the database should be imported. Defaults to false.
+#     schemas:                       # (Optional) List of schemas to create in the database. Defaults to [].
+#       - name: "schema_name"        # (Required) Name of the schema.
+#         owner: "schema_owner"      # (Optional) Owner of the schema, can be user_ref or name. Defaults to the database owner.
+#         reuse: true                # (Optional) If the schema should be reused if it already exists. Defaults to true.
+#         cascade_on_delete: false   # (Optional) If the schema should be deleted with cascade. Defaults to false.
+#     hoop:                          # (Optional) Hoop settings for the database.
+#       access_control: ["group"]    # (Optional) List of access control groups for hoop. Defaults to [].
 variable "databases" {
   description = "Databases and database attributes - see docs for example"
   type        = any
@@ -73,18 +83,21 @@ variable "databases" {
 
 ## Hoop attributes - YAML format
 # hoop:
-#   enabled: true | false # (optional) If the hoop should be enabled, defaults to false, if hoop is enabled and rds is enabled, hoop connection strings will be generated as outputs
-#   agent: "agent_name" # (optional) Name of the hoop agent, required if enabled is true
-#   # Optional below for rds.enabled=false and run with a 'hoop connect' session, most suited for local runs
-#   connection_name: "rds-db-shared-forward-coreswitch-dev-001-usea1-ow"
-#   admin_user: "forward_admin"
-#   db_name: "postgres"
-#   engine: "postgres"
-#   default_sslmode: "require"
-#   server_name: "rds-db-shared-forward-coreswitch-dev-001-usea1"
-#   cluster: false
-#   tags:  # (optional) Tags to apply to the hoop, hoop format <tagname>=<tagvalue>, defaults to empty list
-#     - tag_name=tag_value
+#   enabled: false                   # (Optional) If hoop should be enabled. Defaults to false.
+#   agent_id: "agent-id"             # (Required if enabled) ID of the hoop agent.
+#   connection_name: "conn-name"     # (Optional) Connection name for hoop.
+#   admin_user: "admin"              # (Optional) Admin user for hoop.
+#   db_name: "postgres"              # (Optional) Default database name for hoop.
+#   engine: "postgres"               # (Optional) Engine for hoop. Defaults to postgres.
+#   default_sslmode: "require"       # (Optional) Default SSL mode for hoop. Defaults to require.
+#   server_name: "server"            # (Optional) Server name for hoop.
+#   cluster: false                   # (Optional) If the server is a cluster. Defaults to false.
+#   tags: ["tag1=val1"]              # (Optional) Tags to apply to hoop resources. Defaults to [].
+#   access_control: ["group"]        # (Optional) Global access control groups for hoop. Defaults to [].
+#   superuser: false                 # (Optional) If the hoop user is a superuser. Defaults to false.
+#   port: 5433                       # (Optional) Port for hoop connection. Defaults to 5433.
+#   username: "noop"                 # (Optional) Username for hoop connection. Defaults to noop.
+#   password: "noop"                 # (Optional) Password for hoop connection. Defaults to noop.
 variable "hoop" {
   description = "Hoop attributes - see docs for example"
   type        = any
@@ -93,58 +106,83 @@ variable "hoop" {
 
 ## RDS attributes - YAML format
 # rds:
-#   enabled: true | false # (optional) If the RDS should be enabled, defaults to false
-#   name: "<rds_name>" # (optional) Name of the RDS instance, required if enabled is true
-#   secret_name: "<rds_secret_name>" # (optional) Name of the RDS secret, required if enabled is true
-#   cluster: true | false # (optional) If the RDS is an Aurora RDS Cluster, defaults to false
+#   enabled: false                   # (Optional) If RDS integration should be enabled. Defaults to false.
+#   name: "rds-name"                 # (Optional) Name of the RDS instance. Required if enabled is true.
+#   secret_name: "secret-name"       # (Optional) Name of the RDS secret in Secrets Manager. Required if enabled is true.
+#   cluster: false                   # (Optional) If the RDS is an Aurora RDS Cluster. Defaults to false.
+#   from_secret: false               # (Optional) If the RDS configuration should be read from a secret. Defaults to false.
+#   server_name: "server"            # (Optional) Server name override.
+#   engine: "postgres"               # (Optional) RDS Engine.
+#   sslmode: "require"               # (Optional) SSL mode for RDS connection. Defaults to require.
+#   superuser: false                 # (Optional) If the RDS master user is a superuser. Defaults to false.
 variable "rds" {
   description = "RDS attributes - see docs for example"
   type        = any
   default     = {}
 }
 
+## Direct connection attributes - YAML format
+# direct:
+#   server_name: "server"            # (Required) Server name for direct connection.
+#   host: "localhost"                # (Required) Host for direct connection.
+#   port: 5432                       # (Required) Port for direct connection.
+#   username: "user"                 # (Required) Username for direct connection.
+#   password: "pass"                 # (Required) Password for direct connection.
+#   engine: "postgres"               # (Required) Engine for direct connection.
+#   db_name: "postgres"              # (Required) Database name for direct connection.
+#   sslmode: "require"               # (Required) SSL mode for direct connection.
+#   jump_host: "bastion"             # (Optional) Jump host for SSH tunneling.
+#   jump_port: 22                    # (Optional) Jump port for SSH tunneling.
+#   superuser: false                 # (Optional) If the direct user is a superuser. Defaults to false.
 variable "direct" {
   description = "Direct connection attributes - see docs for example"
   type        = any
   default     = {}
 }
 
+# password_rotation_period: 90       # (Optional) Password rotation period in days. Defaults to 90.
 variable "password_rotation_period" {
   description = "Password rotation period in days"
   type        = number
   default     = 90
 }
 
+# run_hoop: false                    # (Optional) Run hoop with agent. Defaults to false. Be careful, it runs the HOOP command in a null_resource.
 variable "run_hoop" {
   description = "Run hoop with agent, be careful with this option, it will run the HOOP command in output in a null_resource"
   type        = bool
   default     = false
 }
 
+# secrets_kms_key_id: "key-id"       # (Optional) KMS Key ID to use to encrypt data in Secrets Manager. Can be ARN or Alias.
 variable "secrets_kms_key_id" {
   description = "(optional) KMS Key ID to use to encrypt data in this secret, can be ARN or KMS Alias"
   type        = string
   default     = null
 }
 
+# rotation_lambda_name: "lambda"     # (Optional) Name of the lambda function to rotate the password.
 variable "rotation_lambda_name" {
   description = "Name of the lambda function to rotate the password"
   type        = string
   default     = ""
 }
 
+# rotation_duration: "1h"            # (Optional) Duration of the lambda function to rotate the password. Defaults to 1h.
 variable "rotation_duration" {
   description = "Duration of the lambda function to rotate the password"
   type        = string
   default     = "1h"
 }
 
+# rotate_immediately: false          # (Optional) Rotate the password immediately. Defaults to false.
 variable "rotate_immediately" {
   description = "Rotate the password immediately"
   type        = bool
   default     = false
 }
 
+# force_reset: false                 # (Optional) Force reset the password. Defaults to false.
 variable "force_reset" {
   description = "Force Reset the password"
   type        = bool
