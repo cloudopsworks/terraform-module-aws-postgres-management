@@ -8,8 +8,8 @@
 #
 
 locals {
-  hoop_tags = length(try(var.hoop.tags, [])) > 0 ? join(" ", [for v in var.hoop.tags : "--tags \"${v}\""]) : ""
-  hoop_connection_owners = try(var.hoop.enabled, false) && strcontains(local.psql.engine, "postgres") ? {
+  hoop_tags = length(try(var.hoop.tags, {})) > 0 ? join(" ", [for k, v in var.hoop.tags : "--tags \"${k}=${v}\""]) : ""
+  hoop_connection_owners = try(var.hoop.enabled, false) && try(var.hoop.agent, "") != "" && strcontains(local.psql.engine, "postgres") ? {
     for key, db in var.databases : key => <<EOT
 hoop admin create connection ${local.psql.server_name}-${postgresql_database.this[key].name}-ow \
   --agent ${var.hoop.agent} \
@@ -24,7 +24,7 @@ hoop admin create connection ${local.psql.server_name}-${postgresql_database.thi
 EOT
     if try(db.create_owner, false)
   } : {}
-  hoop_connection_users = try(var.hoop.enabled, false) && strcontains(local.psql.engine, "postgres") ? {
+  hoop_connection_users = try(var.hoop.enabled, false) && try(var.hoop.agent, "") != "" && strcontains(local.psql.engine, "postgres") ? {
     for key, role_user in var.users : key => <<EOT
 hoop admin create connection ${local.psql.server_name}-${(try(role_user.db_ref, "") != "" ? postgresql_database.this[role_user.db_ref].name : role_user.database_name)}-${role_user.name} \
   --agent ${var.hoop.agent} \
