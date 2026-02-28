@@ -186,6 +186,7 @@ users:
     grant: "owner"                 # (Required) Grant type for the user. Possible values: owner, readwrite, readonly.
     db_ref: "db_ref"               # (Optional) Reference to the database this user is associated with. Default: default dbname of server.
     database_name: "dbname"        # (Optional) Name of the database this user is associated with. Default: default dbname of server.
+    database_owner: "dbname_ow"    # (Conditionally Required) Owner role to grant when grant=owner and no db_ref is provided. No default.
     schema: "public"               # (Optional) Schema this user is associated with. Default: public.
     login: true                    # (Optional) If the user can login. Default: true.
     superuser: false               # (Optional) If the user is a superuser. Default: false.
@@ -360,11 +361,11 @@ Available targets:
 
 | Name | Version |
 |------|---------|
-| <a name="provider_aws"></a> [aws](#provider\_aws) | 6.34.0 |
-| <a name="provider_null"></a> [null](#provider\_null) | 3.2.4 |
-| <a name="provider_postgresql"></a> [postgresql](#provider\_postgresql) | 1.26.0 |
-| <a name="provider_random"></a> [random](#provider\_random) | 3.8.1 |
-| <a name="provider_time"></a> [time](#provider\_time) | 0.13.1 |
+| <a name="provider_aws"></a> [aws](#provider\_aws) | ~> 6.4 |
+| <a name="provider_null"></a> [null](#provider\_null) | ~> 3.0 |
+| <a name="provider_postgresql"></a> [postgresql](#provider\_postgresql) | ~> 1.25 |
+| <a name="provider_random"></a> [random](#provider\_random) | ~> 3.0 |
+| <a name="provider_time"></a> [time](#provider\_time) | ~> 0.7 |
 
 ## Modules
 
