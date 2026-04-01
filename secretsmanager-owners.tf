@@ -8,13 +8,16 @@
 #
 
 locals {
-  owner_name_list = {
+  normalized_owner_list = {
+    for key, db in var.databases : key => replace(local.owner_list[key], "_", "-")
+  }
+  owner_name_secrets_list = {
     for key, db in var.databases : key => format("%s/%s/%s/%s/%s-rds-credentials",
       local.secret_store_path,
       local.psql.engine,
       local.psql.server_name,
       replace(db.name, "_", "-"),
-      replace(local.owner_list[key], "_", "-")
+      local.normalized_owner_list[key]
     )
     if try(db.create_owner, false)
   }
@@ -30,7 +33,7 @@ resource "aws_secretsmanager_secret" "owner" {
   for_each = {
     for key, db in var.databases : key => db if try(db.create_owner, false)
   }
-  name        = local.owner_name_list[each.key]
+  name        = local.owner_name_secrets_list[each.key]
   description = "RDS Owner credentials - ${local.owner_list[each.key]} - ${local.psql.engine} - ${local.psql.server_name} - ${postgresql_database.this[each.key].name}"
   kms_key_id  = var.secrets_kms_key_id
   tags = merge(local.all_tags, {
@@ -69,7 +72,7 @@ data "aws_secretsmanager_secrets" "owner" {
   filter {
     name = "name"
     values = [
-      local.owner_name_list[each.key]
+      local.owner_name_secrets_list[each.key]
     ]
   }
 }
@@ -77,7 +80,7 @@ data "aws_secretsmanager_secrets" "owner" {
 data "aws_secretsmanager_secret_versions" "owner_rotated" {
   for_each = {
   for key, db in var.databases : key => db if try(db.create_owner, false) && var.rotation_lambda_name != "" && length(try(data.aws_secretsmanager_secrets.owner[key].names, [])) > 0 }
-  secret_id          = local.owner_name_list[each.key]
+  secret_id          = local.owner_name_secrets_list[each.key]
   include_deprecated = true
 }
 
@@ -85,7 +88,7 @@ data "aws_secretsmanager_secret_version" "owner_rotated" {
   for_each = {
     for key, db in var.databases : key => db if try(db.create_owner, false) && var.rotation_lambda_name != "" && length(try(data.aws_secretsmanager_secrets.owner[key].names, [])) > 0 && length(try(data.aws_secretsmanager_secret_versions.owner_rotated[key].versions, [])) > 0
   }
-  secret_id = local.owner_name_list[each.key]
+  secret_id = local.owner_name_secrets_list[each.key]
 }
 
 
