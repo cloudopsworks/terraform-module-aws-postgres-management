@@ -11,7 +11,7 @@ locals {
   hoop_tags = length(try(var.hoop.tags, {})) > 0 ? join(" ", [for k, v in var.hoop.tags : "--tags \"${k}=${v}\""]) : ""
   hoop_connection_owners = try(var.hoop.enabled, false) && try(var.hoop.agent, "") != "" && strcontains(local.psql.engine, "postgres") ? {
     for key, db in var.databases : key => <<EOT
-hoop admin create connection ${local.psql.server_name}-${postgresql_database.this[key].name}-ow \
+hoop admin create connection ${local.psql.server_name}-${local.normalized_owner_list[key]} \
   --agent ${var.hoop.agent} \
   --type database/postgres \
   -e "HOST=_aws:${aws_secretsmanager_secret.owner[key].name}:host" \
