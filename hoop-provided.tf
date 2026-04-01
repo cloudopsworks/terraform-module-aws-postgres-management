@@ -13,7 +13,7 @@ module "hoop_owners" {
     if try(db.create_owner, false) && try(var.hoop.enabled, false) && try(var.hoop.agent_id, "") != ""
   }
   source   = "./hoop"
-  name     = format("%s-%s-ow", local.psql.server_name, postgresql_database.this[each.key].name)
+  name     = format("%s-%s", local.psql.server_name, local.normalized_owner_list[key])
   type     = "database"
   subtype  = "postgres"
   agent_id = var.hoop.agent_id
