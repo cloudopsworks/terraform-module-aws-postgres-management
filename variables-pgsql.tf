@@ -84,16 +84,16 @@ variable "databases" {
 ## Hoop attributes - YAML format
 # hoop:
 #   enabled: false                   # (Optional) If hoop should be enabled. Defaults to false.
-#   agent_id: "agent-id"             # (Required if enabled) ID of the hoop agent.
-#   connection_name: "conn-name"     # (Optional) Connection name for hoop.
-#   admin_user: "admin"              # (Optional) Admin user for hoop.
-#   db_name: "postgres"              # (Optional) Default database name for hoop.
-#   engine: "postgres"               # (Optional) Engine for hoop. Defaults to postgres.
+#   agent_id: "agent-uuid"           # (Required if enabled) UUID of the Hoop agent.
+#   community: true                  # (Optional) Use community secret prefix (_aws:) vs enterprise (_envs/aws#); default: true
+#   import: false                    # (Optional) Import existing Hoop connection; default: false
 #   default_sslmode: "require"       # (Optional) Default SSL mode for hoop. Defaults to require.
+#   tags: {key: "value"}             # (Optional) Tags map for Hoop connection.
+#   access_control: ["group"]        # (Optional) Global access control groups for hoop. Defaults to [].
 #   server_name: "server"            # (Optional) Server name for hoop.
 #   cluster: false                   # (Optional) If the server is a cluster. Defaults to false.
-#   tags: ["tag1=val1"]              # (Optional) Tags to apply to hoop resources. Defaults to [].
-#   access_control: ["group"]        # (Optional) Global access control groups for hoop. Defaults to [].
+#   engine: "postgres"               # (Optional) Engine for hoop. Defaults to postgres.
+#   db_name: "postgres"              # (Optional) Default database name for hoop.
 #   superuser: false                 # (Optional) If the hoop user is a superuser. Defaults to false.
 #   port: 5433                       # (Optional) Port for hoop connection. Defaults to 5433.
 #   username: "noop"                 # (Optional) Username for hoop connection. Defaults to noop.
@@ -147,12 +147,6 @@ variable "password_rotation_period" {
   default     = 90
 }
 
-# run_hoop: false                    # (Optional) Run hoop with agent. Defaults to false. Be careful, it runs the HOOP command in a null_resource.
-variable "run_hoop" {
-  description = "Run hoop with agent, be careful with this option, it will run the HOOP command in output in a null_resource"
-  type        = bool
-  default     = false
-}
 
 # secrets_kms_key_id: "key-id"       # (Optional) KMS Key ID to use to encrypt data in Secrets Manager. Can be ARN or Alias.
 variable "secrets_kms_key_id" {
