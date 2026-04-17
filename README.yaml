@@ -146,7 +146,7 @@ usage: |-
       grant: "owner"                 # (Required) Grant type for the user. Possible values: owner, readwrite, readonly.
       db_ref: "db_ref"               # (Optional) Reference to the database this user is associated with. Default: default dbname of server.
       database_name: "dbname"        # (Optional) Name of the database this user is associated with. Default: default dbname of server.
-      database_owner: "dbname_ow"    # (Conditionally Required) Owner role to grant when grant=owner and no db_ref is provided. No default.
+      database_owner: "dbname"       # (Conditionally Required) Owner role to grant when grant=owner and no db_ref is provided. No default.
       schema: "public"               # (Optional) Schema this user is associated with. Default: public.
       login: true                    # (Optional) If the user can login. Default: true.
       superuser: false               # (Optional) If the user is a superuser. Default: false.
@@ -219,7 +219,6 @@ usage: |-
 
   # --- Security & Maintenance ---
   password_rotation_period: 90       # (Optional) Password rotation period in days. Default: 90.
-  run_hoop: false                    # (Optional) Run hoop with agent. Default: false.
   secrets_kms_key_id: "key-id"       # (Optional) KMS Key ID to use to encrypt data in Secrets Manager.
   rotation_lambda_name: "lambda"     # (Optional) Name of the lambda function to rotate the password.
   rotation_duration: "1h"            # (Optional) Duration of the rotation process. Default: 1h.
