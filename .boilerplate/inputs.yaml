@@ -1,18 +1,124 @@
 # Module configuration
-# Required variables
-{{- range .requiredVariables }}
-{{- if ne .Name "org"}}
-# Description {{ .Description }} , Type: {{ .Type }}
-{{ .Name }}: {{ .DefaultValuePlaceholder }}
-{{- end }}
+# All required and optional variables for terraform-module-aws-postgres-management
+# Do NOT include: is_hub, spoke_def, org, extra_tags (managed by Terragrunt hierarchy)
 
-{{- end }}
-# Optional variables
-{{- range .optionalVariables }}
-{{- if ne .Name "is_hub" "spoke_def" "extra_args" }}
-# Description {{ .Description }} , Type: {{ .Type }}
-#{{ .Name }}: {{ .DefaultValue }}
-{{- end }}
+# users:                                         # (Optional) Map of PostgreSQL users to manage
+#   <user_ref>:
+#     name: "username"                           # (Required) Name of the user
+#     grant: "owner"                             # (Required) Grant type: "owner", "readwrite", "readonly"
+#     db_ref: "db_ref"                           # (Optional) Reference to a database defined in `databases`
+#     database_name: "dbname"                    # (Optional) Explicit database name; defaults to server default
+#     database_owner: "dbname_ow"                # (Conditionally Required) Owner role when grant=owner and no db_ref
+#     schema: "public"                           # (Optional) Schema for user; default: "public"
+#     login: true                                # (Optional) Allow login; default: true
+#     superuser: false                           # (Optional) Superuser flag; default: false
+#     create_database: false                     # (Optional) Allow creating databases; default: false
+#     replication: false                         # (Optional) Allow replication; default: false
+#     encrypted_password: true                   # (Optional) Encrypt password; default: true
+#     inherit: true                              # (Optional) Inherit parent role privileges; default: true
+#     create_role: false                         # (Optional) Allow creating roles; default: false
+#     connection_limit: -1                       # (Optional) Connection limit; default: -1 (no limit)
+#     import: false                              # (Optional) Import existing user; default: false
+#     hoop:                                      # (Optional) Hoop settings for the user
+#       access_control: []                       # (Optional) Hoop access control groups; default: []
+users: {}
 
-{{- end }}
+# roles:                                         # (Optional) Map of PostgreSQL roles to manage
+#   <role_ref>:
+#     name: "rolename"                           # (Required) Name of the role
+#     grant: "owner"                             # (Required) Grant type: "owner", "readwrite", "readonly"
+#     db_ref: "db_ref"                           # (Optional) Reference to a database defined in `databases`
+#     database_name: "dbname"                    # (Optional) Explicit database name
+#     schema: "public"                           # (Optional) Schema for role; default: "public"
+#     create_database: false                     # (Optional) Allow creating databases; default: false
+#     replication: false                         # (Optional) Allow replication; default: false
+#     inherit: true                              # (Optional) Inherit parent role privileges; default: true
+#     create_role: false                         # (Optional) Allow creating roles; default: false
+#     connection_limit: -1                       # (Optional) Connection limit; default: -1 (no limit)
+#     import: false                              # (Optional) Import existing role; default: false
+roles: {}
 
+# databases:                                     # (Optional) Map of PostgreSQL databases to manage
+#   <db_ref>:
+#     name: "dbname"                             # (Required) Name of the database
+#     create_owner: false                        # (Optional) Create dedicated owner; default: false
+#     owner: "ownername"                         # (Optional) Database owner; required if create_owner=false
+#     collate: "en_US.UTF-8"                     # (Optional) Collation; default: "en_US.UTF-8"
+#     ctype: "en_US.UTF-8"                       # (Optional) Character type; default: "en_US.UTF-8"
+#     connection_limit: -1                       # (Optional) Connection limit; default: -1 (no limit)
+#     is_template: false                         # (Optional) Mark as template; default: false
+#     template: "template0"                      # (Optional) Template to use; default: "template0"
+#     encoding: "UTF8"                           # (Optional) Encoding; default: "UTF8"
+#     allow_connections: true                    # (Optional) Allow connections; default: true
+#     alter_object_ownership: false              # (Optional) Alter object ownership; default: false
+#     import: false                              # (Optional) Import existing database; default: false
+#     schemas:                                   # (Optional) Schemas to create
+#       - name: "schema_name"                    # (Required) Schema name
+#         owner: "schema_owner"                  # (Optional) Schema owner (user_ref or name)
+#         reuse: true                            # (Optional) Reuse if exists; default: true
+#         cascade_on_delete: false               # (Optional) Cascade delete; default: false
+#     hoop:                                      # (Optional) Hoop settings for the database
+#       access_control: []                       # (Optional) Hoop access control groups; default: []
+databases: {}
+
+# hoop:                                          # (Optional) Hoop connection output settings
+#   enabled: false                               # (Optional) Enable Hoop; default: false
+#   agent_id: ""                                 # (Required if enabled) UUID of the Hoop agent
+#   community: true                              # (Optional) Community secret prefix (_aws:) vs enterprise (_envs/aws#); default: true
+#   import: false                                # (Optional) Import existing Hoop connection; default: false
+#   default_sslmode: "require"                   # (Optional) Default SSL mode; default: "require"
+#   tags: {}                                     # (Optional) Tags map for Hoop connection
+#   access_control: []                           # (Optional) Global access control groups; default: []
+#   server_name: ""                              # (Optional) Server name for Hoop
+#   cluster: false                               # (Optional) Is server an Aurora cluster; default: false
+#   engine: "postgres"                           # (Optional) Engine for Hoop; default: "postgres"
+#   db_name: "postgres"                          # (Optional) Default database name; default: "postgres"
+#   superuser: false                             # (Optional) Hoop user is superuser; default: false
+#   port: 5433                                   # (Optional) Port for Hoop connection; default: 5433
+#   username: "noop"                             # (Optional) Username for Hoop; default: "noop"
+#   password: "noop"                             # (Optional) Password for Hoop; default: "noop"
+hoop: {}
+
+# rds:                                           # (Optional) RDS integration settings
+#   enabled: false                               # (Optional) Enable RDS integration; default: false
+#   name: ""                                     # (Optional) RDS instance or cluster identifier; required if enabled
+#   secret_name: ""                              # (Optional) Secrets Manager secret name for credentials; required if enabled
+#   cluster: false                               # (Optional) Is this an Aurora cluster; default: false
+#   from_secret: false                           # (Optional) Read connection details from secret; default: false
+#   server_name: ""                              # (Optional) Override logical server name
+#   engine: "postgres"                           # (Optional) RDS engine
+#   sslmode: "require"                           # (Optional) SSL mode; default: "require"
+#   superuser: false                             # (Optional) Master user is superuser; default: false
+rds: {}
+
+# direct:                                        # (Optional) Direct connection settings (non-RDS)
+#   server_name: ""                              # (Required) Logical server name
+#   host: ""                                     # (Required) Database host
+#   port: 5432                                   # (Required) Database port
+#   username: ""                                 # (Required) Database username
+#   password: ""                                 # (Required) Database password
+#   engine: "postgres"                           # (Required) Database engine
+#   db_name: "postgres"                          # (Required) Default database name
+#   sslmode: "require"                           # (Required) SSL mode
+#   jump_host: ""                                # (Optional) Jump/bastion host for SSH tunneling
+#   jump_port: 22                                # (Optional) Jump host port; default: 22
+#   superuser: false                             # (Optional) User is superuser; default: false
+direct: {}
+
+# password_rotation_period: 90                  # (Optional) Password rotation period in days; default: 90
+password_rotation_period: 90
+
+# secrets_kms_key_id: null                      # (Optional) KMS Key ID/ARN/Alias for Secrets Manager encryption; default: null
+secrets_kms_key_id: null
+
+# rotation_lambda_name: ""                      # (Optional) Lambda function name for password rotation; default: ""
+rotation_lambda_name: ""
+
+# rotation_duration: "1h"                       # (Optional) Lambda rotation duration; default: "1h"
+rotation_duration: "1h"
+
+# rotate_immediately: false                     # (Optional) Rotate password immediately on apply; default: false
+rotate_immediately: false
+
+# force_reset: false                            # (Optional) Force reset the password; default: false
+force_reset: false
