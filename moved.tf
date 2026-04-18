@@ -103,3 +103,33 @@ moved {
   from = postgresql_grant.user_connect
   to   = module.db.postgresql_grant.user_connect
 }
+
+moved {
+  from = postgresql_grant.user_tab_def_priv
+  to   = module.db.postgresql_grant.user_tab_def_priv
+}
+
+moved {
+  from = postgresql_default_privileges.user_seq_def_priv
+  to   = module.db.postgresql_default_privileges.user_seq_def_priv
+}
+
+moved {
+  from = postgresql_grant.user_seq_def_priv
+  to   = module.db.postgresql_grant.user_seq_def_priv
+}
+
+moved {
+  from = postgresql_default_privileges.user_func_def_priv
+  to   = module.db.postgresql_default_privileges.user_func_def_priv
+}
+
+moved {
+  from = postgresql_grant.user_func_def_priv
+  to   = module.db.postgresql_grant.user_func_def_priv
+}
+
+moved {
+  from = postgresql_default_privileges.user_types_def_priv
+  to   = module.db.postgresql_default_privileges.user_types_def_priv
+}
