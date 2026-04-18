@@ -1,5 +1,5 @@
 ##
-# (c) 2021-2025
+# (c) 2021-2026
 #     Cloud Ops Works LLC - https://cloudops.works/
 #     Find us on:
 #       GitHub: https://github.com/cloudopsworks
@@ -10,7 +10,7 @@
 output "owners" {
   value = {
     for key, db in var.databases : key => {
-      username               = local.owner_list[key]
+      username               = module.db.owner_usernames[key]
       credentials_secret     = aws_secretsmanager_secret.owner[key].name
       credentials_secret_arn = aws_secretsmanager_secret.owner[key].arn
     }
