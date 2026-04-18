@@ -1,5 +1,5 @@
 ##
-# (c) 2021-2025
+# (c) 2021-2026
 #     Cloud Ops Works LLC - https://cloudops.works/
 #     Find us on:
 #       GitHub: https://github.com/cloudopsworks
@@ -9,7 +9,8 @@
 
 locals {
   normalized_owner_list = {
-    for key, db in var.databases : key => replace(local.owner_list[key], "_", "-")
+    for key, db in var.databases : key => replace(module.db.owner_usernames[key], "_", "-")
+    if try(db.create_owner, false)
   }
   owner_name_secrets_list = {
     for key, db in var.databases : key => format("%s/%s/%s/%s/%s-rds-credentials",
@@ -34,11 +35,11 @@ resource "aws_secretsmanager_secret" "owner" {
     for key, db in var.databases : key => db if try(db.create_owner, false)
   }
   name        = local.owner_name_secrets_list[each.key]
-  description = "RDS Owner credentials - ${local.owner_list[each.key]} - ${local.psql.engine} - ${local.psql.server_name} - ${postgresql_database.this[each.key].name}"
+  description = "RDS Owner credentials - ${module.db.owner_usernames[each.key]} - ${local.psql.engine} - ${local.psql.server_name} - ${module.db.databases[each.key].name}"
   kms_key_id  = var.secrets_kms_key_id
   tags = merge(local.all_tags, {
-    "rds-username"        = local.owner_list[each.key]
-    "rds-datatabase-name" = postgresql_database.this[each.key].name
+    "rds-username"        = module.db.owner_usernames[each.key]
+    "rds-datatabase-name" = module.db.databases[each.key].name
     "rds-server-name"     = local.psql.server_name
   })
 }
@@ -49,8 +50,8 @@ resource "aws_secretsmanager_secret_version" "owner" {
   }
   secret_id = aws_secretsmanager_secret.owner[each.key].id
   secret_string = jsonencode({
-    username = local.owner_list[each.key]
-    password = random_password.owner[each.key].result
+    username = module.db.owner_usernames[each.key]
+    password = module.db.owner_passwords[each.key]
     host = local.hoop_connect ? (
       try(var.hoop.cluster, false) ? data.aws_rds_cluster.hoop_db_server[0].endpoint :
       data.aws_db_instance.hoop_db_server[0].address
@@ -59,7 +60,7 @@ resource "aws_secretsmanager_secret_version" "owner" {
       try(var.hoop.cluster, false) ? data.aws_rds_cluster.hoop_db_server[0].port :
       data.aws_db_instance.hoop_db_server[0].port
     ) : local.psql.port
-    dbname  = postgresql_database.this[each.key].name
+    dbname  = module.db.databases[each.key].name
     sslmode = local.hoop_connect ? var.hoop.default_sslmode : "require"
     engine  = local.psql.engine
   })
@@ -98,12 +99,8 @@ resource "aws_secretsmanager_secret_version" "owner_rotated" {
   }
   secret_id = aws_secretsmanager_secret.owner[each.key].id
   secret_string = jsonencode({
-    username = local.owner_list[each.key]
-    password = (
-      try(length(data.aws_secretsmanager_secret_versions.owner_rotated[each.key].versions), 0) > 0 && !var.force_reset ?
-      jsondecode(data.aws_secretsmanager_secret_version.owner_rotated[each.key].secret_string)["password"] :
-      random_password.owner_initial[each.key].result
-    )
+    username = module.db.owner_usernames[each.key]
+    password = module.db.owner_passwords[each.key]
     host = local.hoop_connect ? (
       try(var.hoop.cluster, false) ? data.aws_rds_cluster.hoop_db_server[0].endpoint :
       data.aws_db_instance.hoop_db_server[0].address
@@ -112,7 +109,7 @@ resource "aws_secretsmanager_secret_version" "owner_rotated" {
       try(var.hoop.cluster, false) ? data.aws_rds_cluster.hoop_db_server[0].port :
       data.aws_db_instance.hoop_db_server[0].port
     ) : local.psql.port
-    dbname  = postgresql_database.this[each.key].name
+    dbname  = module.db.databases[each.key].name
     sslmode = local.hoop_connect ? var.hoop.default_sslmode : "require"
     engine  = local.psql.engine
   })
