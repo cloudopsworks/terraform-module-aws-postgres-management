@@ -25,8 +25,13 @@ locals {
 }
 
 module "db" {
-  source    = "git::https://github.com/cloudopsworks/terraform-module-postgres-management.git?ref=v1.0.0"
+  source    = "git::https://github.com/cloudopsworks/terraform-module-postgres-management.git?ref=v1.0.1"
   providers = { postgresql = postgresql }
+
+  is_hub     = var.is_hub
+  spoke_def  = var.spoke_def
+  org        = var.org
+  extra_tags = var.extra_tags
 
   databases                = var.databases
   users                    = var.users
