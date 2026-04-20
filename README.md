@@ -10,15 +10,15 @@
 
 [![cloudopsworks][logo]](https://cloudopsworks.co/)
 
-# AWS RDS PostgreSQL Management Terraform Module
+# AWS PostgreSQL Management Terraform Module
+
+ [![Latest Release](https://img.shields.io/github/release/cloudopsworks/terraform-module-aws-postgres-management.svg?style=for-the-badge)](https://github.com/cloudopsworks/terraform-module-aws-postgres-management/releases/latest) [![Last Updated](https://img.shields.io/github/last-commit/cloudopsworks/terraform-module-aws-postgres-management.svg?style=for-the-badge)](https://github.com/cloudopsworks/terraform-module-aws-postgres-management/commits)
 
 
-
-
-A comprehensive Terraform module for managing AWS RDS PostgreSQL databases, schemas, users, and roles. 
-It features automated user creation, integrated password rotation via AWS Secrets Manager, 
-and secure connection management through Hoop. This module is designed to provide 
-fine-grained access control and automated security compliance for PostgreSQL environments.
+A Terraform module for managing AWS-side PostgreSQL infrastructure concerns: RDS/Aurora connection
+configuration, AWS Secrets Manager credential storage, Lambda-based password rotation, and Hoop
+secure access integration. Database engine management (users, roles, schemas, grants) is delegated
+to the `terraform-module-postgres-management` base module via an internal `module "db"` call.
 
 
 ---
@@ -50,24 +50,32 @@ We have [*lots of terraform modules*][terraform_modules] that are Open Source an
 
 ### Introduction
 
-The **AWS RDS PostgreSQL Management Terraform Module** is a professional-grade solution 
-for automating the lifecycle of PostgreSQL resources on AWS. It goes beyond simple 
-instance provisioning by providing a robust framework for managing database internals: 
-users, roles, schemas, and permissions.
+The **AWS PostgreSQL Management Terraform Module** handles the AWS infrastructure layer for
+PostgreSQL database management. It is the AWS-specific wrapper around the
+[`terraform-module-postgres-management`](https://github.com/cloudopsworks/terraform-module-postgres-management)
+base module, which manages the actual PostgreSQL engine resources (users, roles, schemas, grants).
 
-By leveraging AWS Secrets Manager, the module ensures that all database credentials 
-are securely stored and automatically rotated according to custom policies. 
-Integration with Hoop allows for secure, audited access to databases without 
-exposing them to the public internet or managing complex VPN/Bastion configurations.
+This module is responsible for:
+
+- **RDS/Aurora connection** — reads credentials from AWS Secrets Manager to connect to an
+  RDS instance or Aurora cluster, or accepts a direct connection configuration.
+- **AWS Secrets Manager** — creates and manages secrets for each database owner and user,
+  storing generated passwords securely.
+- **Lambda password rotation** — configures automatic credential rotation via an existing
+  AWS Lambda function, with configurable rotation period and duration.
+- **Hoop integration** — registers the PostgreSQL connection as a Hoop resource for secure,
+  audited database access without VPN or bastion exposure.
+- **DB engine delegation** — passes `databases`, `users`, `roles`, and rotation state to the
+  `terraform-module-postgres-management` child module (`module "db"`), which applies all
+  PostgreSQL-level changes through the `postgresql` provider.
 
 #### Key Features
-- Automated database user and role management with fine-grained permissions.
-- Schema creation and ownership management.
-- Integration with AWS Secrets Manager for secure credential storage.
-- Automated password rotation with configurable periods and Lambda support.
-- Secure database access through Hoop integration.
-- Support for RDS Instance, Aurora Cluster, and direct PostgreSQL connections.
-- Granular connection limits and role inheritance.
+- AWS Secrets Manager credential storage and retrieval for RDS/Aurora master credentials.
+- Automated owner and user secret creation with KMS encryption support.
+- Lambda-driven password rotation with configurable period, duration, and immediate-rotate option.
+- Hoop connection registration for secure, audited PostgreSQL access.
+- Support for RDS Instance, Aurora Cluster, and direct (non-RDS) PostgreSQL connections.
+- Full delegation of PostgreSQL engine management to `terraform-module-postgres-management`.
 - Comprehensive tagging for resource organization and cost tracking.
 
 ## Usage
@@ -85,207 +93,7 @@ This module is designed to be used with **Terragrunt** for better configuration 
 
 ```hcl
 terraform {
-  source = "git::https://github.com/cloudopsworks/terraform-module-aws-postgres-management.git?ref=v1.0.0"
-}
-
-inputs = {
-  # Organization and Environment Metadata
-  org = {
-    organization_name = "myorg"          # (Required) Organization Name
-    organization_unit = "engineering"    # (Required) Organization Unit
-    environment_type  = "prod"           # (Required) Environment Type (e.g., prod, dev)
-    environment_name  = "production"     # (Required) Environment Name
-  }
-  
-  # Deployment Configuration
-  is_hub    = false                      # (Optional) Is this a hub or spoke configuration? Default: false
-  spoke_def = "001"                      # (Optional) Spoke ID Number (3-digit string). Default: "001"
-  
-  # Database Definitions
-  databases = {
-    app_db = {
-      name         = "application"       # (Required) Database Name
-      create_owner = true                # (Optional) Create a dedicated owner user? Default: false
-      schemas = [                        # (Optional) List of schemas to create
-        {
-          name  = "app_schema"
-          owner = "app_user"             # (Optional) Schema owner (user_ref or name)
-          reuse = true                   # (Optional) Reuse if exists? Default: true
-        }
-      ]
-    }
-  }
-  
-  # User Definitions
-  users = {
-    app_user = {
-      name   = "app_srv"                 # (Required) Database username
-      grant  = "readwrite"               # (Required) Grant level: owner, readwrite, readonly
-      db_ref = "app_db"                  # (Optional) Reference to database in 'databases' map
-    }
-  }
-  
-  # Secrets and Rotation
-  password_rotation_period = 30          # (Optional) Rotation in days. Default: 90
-  rotation_lambda_name     = "rds-rotator" # (Optional) Lambda for rotation
-  
-  # Tags
-  extra_tags = {
-    Project = "CloudOps"
-  }
-}
-```
-
-#### Full Variable Configuration (YAML Format)
-
-Below is the complete reference for all configuration options available in this module:
-
-```yaml
-# --- Global Configuration ---
-is_hub: false                      # (Optional) Is this a hub or spoke configuration? Default: false.
-spoke_def: "001"                   # (Optional) Spoke ID Number, must be a 3 digit number. Default: "001".
-org:                               # (Required) Organization details.
-  organization_name: "name"        # (Required) Name of the organization.
-  organization_unit: "unit"        # (Required) Organizational unit.
-  environment_type: "prod"         # (Required) Type of environment (e.g., dev, prod).
-  environment_name: "production"   # (Required) Specific name of the environment.
-extra_tags: {}                     # (Optional) Extra tags to add to the resources. Default: {}.
-
-# --- Database Configuration ---
-databases:
-  <db_ref>:
-    name: "dbname"                 # (Required) Name of the database.
-    create_owner: false            # (Optional) If the database should be created with an owner. Default: false.
-    owner: "ownername"             # (Optional) Owner of the database, required if create_owner is false.
-    collate: "en_US.UTF-8"         # (Optional) Collate of the database. Default: en_US.UTF-8.
-    ctype: "en_US.UTF-8"           # (Optional) Ctype of the database. Default: en_US.UTF-8.
-    connection_limit: -1           # (Optional) Connection limit for the database. Default: -1 (no limit).
-    is_template: false             # (Optional) If the database is a template. Default: false.
-    template: "template0"          # (Optional) Name of the template to use for the database. Default: template0.
-    encoding: "UTF8"               # (Optional) Encoding of the database. Default: UTF8.
-    allow_connections: true        # (Optional) If the database allows connections. Default: true.
-    alter_object_ownership: false  # (Optional) If the database should alter object ownership. Default: false.
-    import: false                  # (Optional) If the database should be imported. Default: false.
-    schemas:                       # (Optional) List of schemas to create in the database. Default: [].
-      - name: "schema_name"        # (Required) Name of the schema.
-        owner: "schema_owner"      # (Optional) Owner of the schema, can be user_ref or name. Default: database owner.
-        reuse: true                # (Optional) If the schema should be reused if it already exists. Default: true.
-        cascade_on_delete: false   # (Optional) If the schema should be deleted with cascade. Default: false.
-    hoop:                          # (Optional) Hoop settings for the database.
-      access_control: ["group"]    # (Optional) List of access control groups for hoop. Default: [].
-
-# --- User Configuration ---
-users:
-  <user_ref>:
-    name: "username"               # (Required) Name of the user.
-    grant: "owner"                 # (Required) Grant type for the user. Possible values: owner, readwrite, readonly.
-    db_ref: "db_ref"               # (Optional) Reference to the database this user is associated with. Default: default dbname of server.
-    database_name: "dbname"        # (Optional) Name of the database this user is associated with. Default: default dbname of server.
-    database_owner: "dbname"       # (Conditionally Required) Owner role to grant when grant=owner and no db_ref is provided. No default.
-    schema: "public"               # (Optional) Schema this user is associated with. Default: public.
-    login: true                    # (Optional) If the user can login. Default: true.
-    superuser: false               # (Optional) If the user is a superuser. Default: false.
-    create_database: false         # (Optional) If the user can create databases. Default: false.
-    replication: false             # (Optional) If the user can replicate. Default: false.
-    encrypted_password: true       # (Optional) If the password is encrypted. Default: true.
-    inherit: true                  # (Optional) If the user inherits privileges from the parent role. Default: true.
-    create_role: false             # (Optional) If the user can create roles. Default: false.
-    connection_limit: -1           # (Optional) Connection limit for the user. Default: -1 (no limit).
-    import: false                  # (Optional) If the user should be imported. Default: false.
-    hoop:                          # (Optional) Hoop settings for the user.
-      access_control: ["group"]    # (Optional) List of access control groups for hoop. Default: [].
-
-# --- Role Configuration ---
-roles:
-  <role_ref>:
-    name: "rolename"               # (Required) Name of the role.
-    grant: "owner"                 # (Required) Grant type for the role. Possible values: owner, readwrite, readonly.
-    db_ref: "db_ref"               # (Optional) Reference to the database this role is associated with. Default: default dbname of server.
-    database_name: "dbname"        # (Optional) Name of the database this role is associated with. Default: default dbname of server.
-    schema: "public"               # (Optional) Schema this role is associated with. Default: public.
-    create_database: false         # (Optional) If the role can create databases. Default: false.
-    replication: false             # (Optional) If the role can replicate. Default: false.
-    inherit: true                  # (Optional) If the role inherits privileges from the parent role. Default: true.
-    create_role: false             # (Optional) If the role can create roles. Default: false.
-    connection_limit: -1           # (Optional) Connection limit for the role. Default: -1 (no limit).
-    import: false                  # (Optional) If the role should be imported. Default: false.
-
-# --- Connection Settings (RDS/Hoop/Direct) ---
-hoop:
-  enabled: false                   # (Optional) If hoop should be enabled. Default: false.
-  agent_id: "agent-id"             # (Required if enabled) ID of the hoop agent.
-  connection_name: "conn-name"     # (Optional) Connection name for hoop.
-  admin_user: "admin"              # (Optional) Admin user for hoop.
-  db_name: "postgres"              # (Optional) Default database name for hoop.
-  engine: "postgres"               # (Optional) Engine for hoop. Default: postgres.
-  default_sslmode: "require"       # (Optional) Default SSL mode for hoop. Default: require.
-  server_name: "server"            # (Optional) Server name for hoop.
-  cluster: false                   # (Optional) If the server is a cluster. Default: false.
-  tags: ["tag1=val1"]              # (Optional) Tags to apply to hoop resources. Default: [].
-  access_control: ["group"]        # (Optional) Global access control groups for hoop. Default: [].
-  superuser: false                 # (Optional) If the hoop user is a superuser. Default: false.
-  port: 5433                       # (Optional) Port for hoop connection. Default: 5433.
-  username: "noop"                 # (Optional) Username for hoop connection. Default: noop.
-  password: "noop"                 # (Optional) Password for hoop connection. Default: noop.
-
-rds:
-  enabled: false                   # (Optional) If RDS integration should be enabled. Default: false.
-  name: "rds-name"                 # (Optional) Name of the RDS instance. Required if enabled is true.
-  secret_name: "secret-name"       # (Optional) Name of the RDS secret in Secrets Manager. Required if enabled is true.
-  cluster: false                   # (Optional) If the RDS is an Aurora RDS Cluster. Default: false.
-  from_secret: false               # (Optional) If the RDS configuration should be read from a secret. Default: false.
-  server_name: "server"            # (Optional) Server name override.
-  engine: "postgres"               # (Optional) RDS Engine.
-  sslmode: "require"               # (Optional) SSL mode for RDS connection. Default: require.
-  superuser: false                 # (Optional) If the RDS master user is a superuser. Default: false.
-
-direct:
-  server_name: "server"            # (Required) Server name for direct connection.
-  host: "localhost"                # (Required) Host for direct connection.
-  port: 5432                       # (Required) Port for direct connection.
-  username: "user"                 # (Required) Username for direct connection.
-  password: "pass"                 # (Required) Password for direct connection.
-  engine: "postgres"               # (Required) Engine for direct connection.
-  db_name: "postgres"              # (Required) Database name for direct connection.
-  sslmode: "require"               # (Required) SSL mode for direct connection.
-  jump_host: "bastion"             # (Optional) Jump host for SSH tunneling.
-  jump_port: 22                    # (Optional) Jump port for SSH tunneling.
-  superuser: false                 # (Optional) If the direct user is a superuser. Default: false.
-
-# --- Security & Maintenance ---
-password_rotation_period: 90       # (Optional) Password rotation period in days. Default: 90.
-secrets_kms_key_id: "key-id"       # (Optional) KMS Key ID to use to encrypt data in Secrets Manager.
-rotation_lambda_name: "lambda"     # (Optional) Name of the lambda function to rotate the password.
-rotation_duration: "1h"            # (Optional) Duration of the rotation process. Default: 1h.
-rotate_immediately: false          # (Optional) Rotate the password immediately on apply. Default: false.
-force_reset: false                 # (Optional) Force reset the password. Default: false.
-```
-
-## Quick Start
-
-### Quickstart
-
-1.  **Prerequisites**: Ensure you have Terraform >= 1.0, Terragrunt >= 0.36, and AWS credentials configured.
-2.  **Configuration**: Create a `terragrunt.hcl` in your infrastructure repository.
-3.  **Define Inputs**: Add the `org`, `rds`, and `users` definitions as shown in the Usage section.
-4.  **Deploy**:
-    ```bash
-    terragrunt init
-    terragrunt plan
-    terragrunt apply
-    ```
-5.  **Verify**: Check AWS Secrets Manager for the generated database credentials.
-
-
-## Examples
-
-### Examples
-
-#### Simple Terragrunt Setup
-
-```hcl
-terraform {
-  source = "git::https://github.com/cloudopsworks/terraform-module-aws-postgres-management.git?ref=v1.0.0"
+  source = "git::https://github.com/cloudopsworks/terraform-module-aws-postgres-management.git?ref=v2.1.2"
 }
 
 include "root" {
@@ -293,13 +101,184 @@ include "root" {
 }
 
 inputs = {
-  org = {
-    organization_name = "example"
-    organization_unit = "finance"
-    environment_type  = "dev"
-    environment_name  = "development"
+  # --- Database Configuration ---
+  # databases:                                   # (Optional) Map of PostgreSQL databases to manage. Default: {}.
+  databases = {
+    app_db = {
+      name         = "application"              # (Required) Name of the database.
+      create_owner = true                       # (Optional) Create a dedicated owner user. Default: false.
+      owner        = "ownername"                # (Optional) Owner of the database; required if create_owner=false.
+      collate      = "en_US.UTF-8"              # (Optional) Collation. Default: "en_US.UTF-8".
+      ctype        = "en_US.UTF-8"              # (Optional) Character type. Default: "en_US.UTF-8".
+      connection_limit     = -1                 # (Optional) Connection limit. Default: -1 (no limit).
+      is_template          = false              # (Optional) Mark as template. Default: false.
+      template             = "template0"        # (Optional) Template to use. Default: "template0".
+      encoding             = "UTF8"             # (Optional) Encoding. Default: "UTF8".
+      allow_connections    = true               # (Optional) Allow connections. Default: true.
+      alter_object_ownership = false            # (Optional) Alter object ownership. Default: false.
+      import               = false              # (Optional) Import existing database. Default: false.
+      schemas = [                               # (Optional) Schemas to create in the database. Default: [].
+        {
+          name             = "app_schema"       # (Required) Schema name.
+          owner            = "app_user"         # (Optional) Schema owner (user_ref or name). Default: database owner.
+          reuse            = true               # (Optional) Reuse if exists. Default: true.
+          cascade_on_delete = false             # (Optional) Cascade delete. Default: false.
+        }
+      ]
+      hoop = {                                  # (Optional) Hoop settings for the database.
+        access_control = ["group"]              # (Optional) Hoop access control groups. Default: [].
+      }
+    }
   }
 
+  # --- User Configuration ---
+  # users:                                       # (Optional) Map of PostgreSQL users to manage. Default: {}.
+  users = {
+    app_user = {
+      name             = "app_srv"              # (Required) Database username.
+      grant            = "readwrite"            # (Required) Grant type: "owner", "readwrite", "readonly".
+      db_ref           = "app_db"              # (Optional) Reference to a database defined in `databases`.
+      database_name    = "dbname"              # (Optional) Explicit database name; defaults to server default.
+      database_owner   = "dbname_ow"           # (Conditionally Required) Owner role when grant=owner and no db_ref.
+      schema           = "public"              # (Optional) Schema for user. Default: "public".
+      login            = true                  # (Optional) Allow login. Default: true.
+      superuser        = false                 # (Optional) Superuser flag. Default: false.
+      create_database  = false                 # (Optional) Allow creating databases. Default: false.
+      replication      = false                 # (Optional) Allow replication. Default: false.
+      encrypted_password = true               # (Optional) Encrypt password. Default: true.
+      inherit          = true                  # (Optional) Inherit parent role privileges. Default: true.
+      create_role      = false                 # (Optional) Allow creating roles. Default: false.
+      connection_limit = -1                    # (Optional) Connection limit. Default: -1 (no limit).
+      import           = false                 # (Optional) Import existing user. Default: false.
+      hoop = {                                 # (Optional) Hoop settings for the user.
+        access_control = ["group"]             # (Optional) Hoop access control groups. Default: [].
+      }
+    }
+  }
+
+  # --- Role Configuration ---
+  # roles:                                       # (Optional) Map of PostgreSQL roles to manage. Default: {}.
+  roles = {
+    readonly_role = {
+      name             = "readonly_role"        # (Required) Role name.
+      grant            = "readonly"             # (Required) Grant type: "owner", "readwrite", "readonly".
+      db_ref           = "app_db"              # (Optional) Reference to a database defined in `databases`.
+      database_name    = "dbname"              # (Optional) Explicit database name.
+      schema           = "public"              # (Optional) Schema for role. Default: "public".
+      create_database  = false                 # (Optional) Allow creating databases. Default: false.
+      replication      = false                 # (Optional) Allow replication. Default: false.
+      inherit          = true                  # (Optional) Inherit parent role privileges. Default: true.
+      create_role      = false                 # (Optional) Allow creating roles. Default: false.
+      connection_limit = -1                    # (Optional) Connection limit. Default: -1 (no limit).
+      import           = false                 # (Optional) Import existing role. Default: false.
+    }
+  }
+
+  # --- RDS Connection Settings ---
+  # rds:                                         # (Optional) RDS integration settings. Default: {}.
+  rds = {
+    enabled     = true                          # (Optional) Enable RDS integration. Default: false.
+    name        = "my-rds-instance"             # (Optional) RDS instance or cluster identifier; required if enabled=true.
+    secret_name = "my-rds-credentials"          # (Optional) Secrets Manager secret name for master credentials; required if enabled=true.
+    cluster     = false                         # (Optional) Is this an Aurora cluster. Default: false.
+    from_secret = false                         # (Optional) Read connection details from secret. Default: false.
+    server_name = "server"                      # (Optional) Override logical server name.
+    engine      = "postgres"                    # (Optional) RDS engine. Default: "postgres".
+    sslmode     = "require"                     # (Optional) SSL mode. Default: "require".
+    superuser   = false                         # (Optional) Master user is superuser. Default: false.
+  }
+
+  # --- Direct Connection Settings (non-RDS) ---
+  # direct:                                      # (Optional) Direct connection settings. Default: {}.
+  direct = {
+    server_name = "myserver"                    # (Required) Logical server name.
+    host        = "db.example.com"              # (Required) Database host.
+    port        = 5432                          # (Required) Database port.
+    username    = "admin"                       # (Required) Database username.
+    password    = "secret"                      # (Required) Database password.
+    engine      = "postgres"                    # (Required) Database engine.
+    db_name     = "postgres"                    # (Required) Default database name.
+    sslmode     = "require"                     # (Required) SSL mode.
+    jump_host   = "bastion.example.com"         # (Optional) Jump/bastion host for SSH tunneling.
+    jump_port   = 22                            # (Optional) Jump host port. Default: 22.
+    superuser   = false                         # (Optional) User is superuser. Default: false.
+  }
+
+  # --- Hoop Integration ---
+  # hoop:                                        # (Optional) Hoop connection settings. Default: {}.
+  hoop = {
+    enabled        = false                      # (Optional) Enable Hoop integration. Default: false.
+    agent_id       = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" # (Required if enabled) UUID of the Hoop agent.
+    community      = true                       # (Optional) Use community secret prefix (_aws:) vs enterprise (_envs/aws#). Default: true.
+    import         = false                      # (Optional) Import existing Hoop connection. Default: false.
+    default_sslmode = "require"                 # (Optional) Default SSL mode. Default: "require".
+    tags           = {}                         # (Optional) Tags map for Hoop connection. Default: {}.
+    access_control = ["group"]                  # (Optional) Global access control groups. Default: [].
+    server_name    = "myserver"                 # (Optional) Server name for Hoop.
+    cluster        = false                      # (Optional) Is server an Aurora cluster. Default: false.
+    engine         = "postgres"                 # (Optional) Engine for Hoop. Default: "postgres".
+    db_name        = "postgres"                 # (Optional) Default database name. Default: "postgres".
+    superuser      = false                      # (Optional) Hoop user is superuser. Default: false.
+    port           = 5433                       # (Optional) Port for Hoop connection. Default: 5433.
+    username       = "noop"                     # (Optional) Username for Hoop. Default: "noop".
+    password       = "noop"                     # (Optional) Password for Hoop. Default: "noop".
+  }
+
+  # --- Security & Rotation ---
+  # password_rotation_period: 90                # (Optional) Password rotation period in days. Default: 90.
+  password_rotation_period = 30
+
+  # secrets_kms_key_id: null                    # (Optional) KMS Key ID/ARN/Alias for Secrets Manager encryption. Default: null.
+  secrets_kms_key_id = "alias/my-kms-key"
+
+  # rotation_lambda_name: ""                    # (Optional) Lambda function name for password rotation. Default: "".
+  rotation_lambda_name = "rds-postgres-rotator"
+
+  # rotation_duration: "1h"                     # (Optional) Lambda rotation duration. Default: "1h".
+  rotation_duration = "1h"
+
+  # rotate_immediately: false                   # (Optional) Rotate password immediately on apply. Default: false.
+  rotate_immediately = false
+
+  # force_reset: false                          # (Optional) Force reset the password. Default: false.
+  force_reset = false
+}
+```
+
+## Quick Start
+
+### Quickstart
+
+1. **Prerequisites**: Ensure you have Terraform >= 1.3, Terragrunt >= 0.45, and AWS credentials configured.
+2. **Create your Terragrunt file**: Create a `terragrunt.hcl` in your infrastructure repository pointing to this module at `v2.1.2`.
+3. **Configure RDS**: Set `rds.enabled = true` and provide `rds.name` and `rds.secret_name` matching your RDS instance and its Secrets Manager secret.
+4. **Define databases and users**: Add `databases` and `users` blocks as shown in the Usage section.
+5. **Deploy**:
+   ```bash
+   terragrunt init
+   terragrunt plan
+   terragrunt apply
+   ```
+6. **Verify**: Check AWS Secrets Manager for the generated per-user database credentials. Outputs include `owners` and `users` maps with `credentials_secret` and `credentials_secret_arn`.
+7. **Optional — enable Hoop**: Set `hoop.enabled = true` and provide your `hoop.agent_id` to register the connection for secure audited access.
+
+
+## Examples
+
+### Examples
+
+#### Simple RDS Setup with Terragrunt
+
+```hcl
+terraform {
+  source = "git::https://github.com/cloudopsworks/terraform-module-aws-postgres-management.git?ref=v2.1.2"
+}
+
+include "root" {
+  path = find_in_parent_folders()
+}
+
+inputs = {
   rds = {
     enabled     = true
     name        = "finance-db-dev"
@@ -321,6 +300,55 @@ inputs = {
       db_ref = "ledger"
     }
   }
+
+  password_rotation_period = 30
+  rotation_lambda_name     = "rds-postgres-rotator"
+}
+```
+
+#### Aurora Cluster with Hoop Integration
+
+```hcl
+terraform {
+  source = "git::https://github.com/cloudopsworks/terraform-module-aws-postgres-management.git?ref=v2.1.2"
+}
+
+include "root" {
+  path = find_in_parent_folders()
+}
+
+inputs = {
+  rds = {
+    enabled     = true
+    name        = "aurora-cluster-prod"
+    secret_name = "aurora-cluster-credentials"
+    cluster     = true
+  }
+
+  hoop = {
+    enabled    = true
+    agent_id   = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+    server_name = "aurora-cluster-prod"
+    cluster    = true
+  }
+
+  databases = {
+    main = {
+      name         = "appdb"
+      create_owner = true
+    }
+  }
+
+  users = {
+    app_service = {
+      name   = "app_svc"
+      grant  = "readwrite"
+      db_ref = "main"
+    }
+  }
+
+  secrets_kms_key_id   = "alias/prod-kms-key"
+  rotation_lambda_name = "rds-postgres-rotator"
 }
 ```
 
@@ -357,7 +385,7 @@ Available targets:
 
 | Name | Version |
 |------|---------|
-| <a name="provider_aws"></a> [aws](#provider\_aws) | ~> 6.4 |
+| <a name="provider_aws"></a> [aws](#provider\_aws) | 6.41.0 |
 
 ## Modules
 
@@ -532,9 +560,9 @@ This project is maintained by [Cloud Ops Works LLC][website].
   [readme_footer_link]: https://cloudopsworks.co/readme/footer/link?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-postgres-management&utm_content=readme_footer_link
   [readme_commercial_support_img]: https://cloudopsworks.co/readme/commercial-support/img
   [readme_commercial_support_link]: https://cloudopsworks.co/readme/commercial-support/link?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-postgres-management&utm_content=readme_commercial_support_link
-  [share_twitter]: https://x.com/intent/tweet/?text=AWS+RDS+PostgreSQL+Management+Terraform+Module&url=https://github.com/cloudopsworks/terraform-module-aws-postgres-management
-  [share_linkedin]: https://www.linkedin.com/shareArticle?mini=true&title=AWS+RDS+PostgreSQL+Management+Terraform+Module&url=https://github.com/cloudopsworks/terraform-module-aws-postgres-management
+  [share_twitter]: https://x.com/intent/tweet/?text=AWS+PostgreSQL+Management+Terraform+Module&url=https://github.com/cloudopsworks/terraform-module-aws-postgres-management
+  [share_linkedin]: https://www.linkedin.com/shareArticle?mini=true&title=AWS+PostgreSQL+Management+Terraform+Module&url=https://github.com/cloudopsworks/terraform-module-aws-postgres-management
   [share_reddit]: https://reddit.com/submit/?url=https://github.com/cloudopsworks/terraform-module-aws-postgres-management
   [share_facebook]: https://facebook.com/sharer/sharer.php?u=https://github.com/cloudopsworks/terraform-module-aws-postgres-management
-  [share_email]: mailto:?subject=AWS+RDS+PostgreSQL+Management+Terraform+Module&body=https://github.com/cloudopsworks/terraform-module-aws-postgres-management
+  [share_email]: mailto:?subject=AWS+PostgreSQL+Management+Terraform+Module&body=https://github.com/cloudopsworks/terraform-module-aws-postgres-management
   [beacon]: https://ga-beacon.cloudospworks.co/G-QMZVYYN2VN/cloudopsworks/terraform-module-aws-postgres-management?pixel&cs=github&cm=readme&an=terraform-module-aws-postgres-management
