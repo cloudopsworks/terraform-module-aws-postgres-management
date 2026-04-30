@@ -387,7 +387,7 @@ Available targets:
 
 | Name | Source | Version |
 |------|--------|---------|
-| <a name="module_db"></a> [db](#module\_db) | git::https://github.com/cloudopsworks/terraform-module-postgres-management.git | v1.0.1 |
+| <a name="module_db"></a> [db](#module\_db) | git::https://github.com/cloudopsworks/terraform-module-postgres-management.git | v1.0.6 |
 | <a name="module_tags"></a> [tags](#module\_tags) | cloudopsworks/tags/local | 1.0.9 |
 
 ## Resources
