@@ -38,7 +38,7 @@ introduction: |-
   - **RDS/Aurora connection** — reads credentials from AWS Secrets Manager to connect to an
     RDS instance or Aurora cluster, or accepts a direct connection configuration.
   - **AWS Secrets Manager** — creates and manages secrets for each database owner and user,
-    storing generated passwords securely.
+    storing generated passwords securely, with import, recovery-window, and cross-region replica controls.
   - **Lambda password rotation** — configures automatic credential rotation via an existing
     AWS Lambda function, with configurable rotation period and duration.
   - **Hoop integration** — registers the PostgreSQL connection as a Hoop resource for secure,
@@ -50,6 +50,8 @@ introduction: |-
   #### Key Features
   - AWS Secrets Manager credential storage and retrieval for RDS/Aurora master credentials.
   - Automated owner and user secret creation with KMS encryption support.
+  - Import of existing owner/user secrets using their deterministic management paths.
+  - Configurable alphanumeric-only passwords for client compatibility.
   - Lambda-driven password rotation with configurable period, duration, and immediate-rotate option.
   - Hoop connection registration for secure, audited PostgreSQL access.
   - Support for RDS Instance, Aurora Cluster, and direct (non-RDS) PostgreSQL connections.
@@ -66,7 +68,7 @@ usage: |-
 
   ```hcl
   terraform {
-    source = "git::https://github.com/cloudopsworks/terraform-module-aws-postgres-management.git?ref=v2.1.2"
+    source = "git::https://github.com/cloudopsworks/terraform-module-aws-postgres-management.git?ref=v2.2.0"
   }
 
   include "root" {
@@ -89,7 +91,14 @@ usage: |-
         encoding             = "UTF8"             # (Optional) Encoding. Default: "UTF8".
         allow_connections    = true               # (Optional) Allow connections. Default: true.
         alter_object_ownership = false            # (Optional) Alter object ownership. Default: false.
-        import               = false              # (Optional) Import existing database. Default: false.
+        import               = false              # (Optional) Import existing database, owner role, and owner secret. Default: false.
+        secret = {                                # (Optional) Per-owner-secret lifecycle overrides.
+          recovery_window = 30                    # (Optional) 0 or 7-30 days.
+          replica = {
+            region     = "us-west-2"              # (Optional) Cross-region replica.
+            kms_key_id = "alias/replica-key"      # (Optional) KMS key in replica region.
+          }
+        }
         schemas = [                               # (Optional) Schemas to create in the database. Default: [].
           {
             name             = "app_schema"       # (Required) Schema name.
@@ -122,7 +131,14 @@ usage: |-
         inherit          = true                  # (Optional) Inherit parent role privileges. Default: true.
         create_role      = false                 # (Optional) Allow creating roles. Default: false.
         connection_limit = -1                    # (Optional) Connection limit. Default: -1 (no limit).
-        import           = false                 # (Optional) Import existing user. Default: false.
+        import           = false                 # (Optional) Import existing user and its secret. Default: false.
+        secret = {                               # (Optional) Per-user-secret lifecycle overrides.
+          recovery_window = 30                   # (Optional) 0 or 7-30 days.
+          replica = {
+            region     = "us-west-2"             # (Optional) Cross-region replica.
+            kms_key_id = "alias/replica-key"     # (Optional) KMS key in replica region.
+          }
+        }
         hoop = {                                 # (Optional) Hoop settings for the user.
           access_control = ["group"]             # (Optional) Hoop access control groups. Default: [].
         }
@@ -204,6 +220,14 @@ usage: |-
     # secrets_kms_key_id: null                    # (Optional) KMS Key ID/ARN/Alias for Secrets Manager encryption. Default: null.
     secrets_kms_key_id = "alias/my-kms-key"
 
+    # Default secret lifecycle controls; per-entity secret blocks override these.
+    secrets_recovery_window   = 30
+    secrets_replica_region    = null
+    secrets_replica_kms_key_id = null
+
+    # Use false for alphanumeric-only generated owner/user passwords.
+    specials_in_password = true
+
     # rotation_lambda_name: ""                    # (Optional) Lambda function name for password rotation. Default: "".
     rotation_lambda_name = "rds-postgres-rotator"
 
@@ -226,7 +250,7 @@ examples: |-
 
   ```hcl
   terraform {
-    source = "git::https://github.com/cloudopsworks/terraform-module-aws-postgres-management.git?ref=v2.1.2"
+    source = "git::https://github.com/cloudopsworks/terraform-module-aws-postgres-management.git?ref=v2.2.0"
   }
 
   include "root" {
@@ -265,7 +289,7 @@ examples: |-
 
   ```hcl
   terraform {
-    source = "git::https://github.com/cloudopsworks/terraform-module-aws-postgres-management.git?ref=v2.1.2"
+    source = "git::https://github.com/cloudopsworks/terraform-module-aws-postgres-management.git?ref=v2.2.0"
   }
 
   include "root" {

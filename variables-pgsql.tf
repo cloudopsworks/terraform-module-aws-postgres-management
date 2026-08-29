@@ -24,7 +24,12 @@
 #     inherit: true                  # (Optional) If the user inherits privileges from the parent role. Defaults to true.
 #     create_role: false             # (Optional) If the user can create roles. Defaults to false.
 #     connection_limit: -1           # (Optional) Connection limit for the user. Defaults to -1 (no limit).
-#     import: false                  # (Optional) If the user should be imported. Defaults to false.
+#     import: false                  # (Optional) Import the existing user and its Secrets Manager secret. Defaults to false.
+#     secret:                        # (Optional) Per-user Secrets Manager overrides. Module-wide defaults apply when omitted.
+#       recovery_window: 30          # (Optional) Recovery window: 0 or 7-30 days. Defaults to secrets_recovery_window.
+#       replica:
+#         region: "us-west-2"        # (Optional) Replica region. Defaults to secrets_replica_region.
+#         kms_key_id: "alias/key"    # (Optional) Replica-region KMS key. Defaults to secrets_replica_kms_key_id.
 #     hoop:                          # (Optional) Hoop settings for the user.
 #       access_control: ["group"]    # (Optional) List of access control groups for hoop. Defaults to [].
 variable "users" {
@@ -67,7 +72,12 @@ variable "roles" {
 #     encoding: "UTF8"               # (Optional) Encoding of the database. Defaults to UTF8.
 #     allow_connections: true        # (Optional) If the database allows connections. Defaults to true.
 #     alter_object_ownership: false  # (Optional) If the database should alter object ownership. Defaults to false.
-#     import: false                  # (Optional) If the database should be imported. Defaults to false.
+#     import: false                  # (Optional) Import the database, owner role, and owner Secrets Manager secret. Defaults to false.
+#     secret:                        # (Optional) Owner-secret overrides, used when create_owner is true.
+#       recovery_window: 30          # (Optional) Recovery window: 0 or 7-30 days. Defaults to secrets_recovery_window.
+#       replica:
+#         region: "us-west-2"        # (Optional) Replica region. Defaults to secrets_replica_region.
+#         kms_key_id: "alias/key"    # (Optional) Replica-region KMS key. Defaults to secrets_replica_kms_key_id.
 #     schemas:                       # (Optional) List of schemas to create in the database. Defaults to [].
 #       - name: "schema_name"        # (Required) Name of the schema.
 #         owner: "schema_owner"      # (Optional) Owner of the schema, can be user_ref or name. Defaults to the database owner.
@@ -181,4 +191,29 @@ variable "force_reset" {
   description = "Force Reset the password"
   type        = bool
   default     = false
+}
+
+variable "specials_in_password" {
+  description = "(optional) Use special characters in generated owner/user passwords. When false, generated passwords are alphanumeric only. Defaults to true"
+  type        = bool
+  default     = true
+}
+
+variable "secrets_recovery_window" {
+  description = "(optional) Default recovery window in days before a deleted secret is permanently removed. Use 0 to delete immediately, otherwise 7-30. Defaults to 30"
+  type        = number
+  default     = 30
+  nullable    = false
+}
+
+variable "secrets_replica_region" {
+  description = "(optional) Region to replicate every managed secret into. When null, no replica is created unless set per entity. Defaults to null"
+  type        = string
+  default     = null
+}
+
+variable "secrets_replica_kms_key_id" {
+  description = "(optional) KMS Key ID used to encrypt replicated secrets, can be ARN or KMS Alias. Must reside in the replica region. Defaults to null (AWS managed key)"
+  type        = string
+  default     = null
 }
