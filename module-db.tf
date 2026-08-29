@@ -25,7 +25,7 @@ locals {
 }
 
 module "db" {
-  source    = "git::https://github.com/cloudopsworks/terraform-module-postgres-management.git?ref=v1.0.7"
+  source    = "git::https://github.com/cloudopsworks/terraform-module-postgres-management.git?ref=v1.1.0"
   providers = { postgresql = postgresql }
 
   is_hub     = var.is_hub
@@ -41,4 +41,5 @@ module "db" {
   rotation_lambda_name     = var.rotation_lambda_name
   rotated_owner_passwords  = local.rotated_owner_passwords
   rotated_user_passwords   = local.rotated_user_passwords
+  specials_in_password     = var.specials_in_password
 }

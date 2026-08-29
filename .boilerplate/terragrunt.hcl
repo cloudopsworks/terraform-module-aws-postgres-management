@@ -24,9 +24,6 @@ include "root" {
   path = find_in_parent_folders("{{ .RootFileName }}")
 }
 
-terraform {
-  source = "{{ .sourceUrl }}"
-}
 {{ if .rds_enabled }}
 dependency "database" {
   config_path = "{{ .rds_path }}"
@@ -45,6 +42,9 @@ dependency "database" {
   }
 }
 {{ end }}
+terraform {
+  source = "{{ .sourceUrl }}"
+}
 inputs = {
   is_hub     = {{ .is_hub }}
   org        = local.env_vars.org

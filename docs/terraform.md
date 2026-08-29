@@ -13,14 +13,14 @@
 
 | Name | Version |
 |------|---------|
-| <a name="provider_aws"></a> [aws](#provider\_aws) | ~> 6.4 |
+| <a name="provider_aws"></a> [aws](#provider\_aws) | 6.41.0 |
 
 ## Modules
 
 | Name | Source | Version |
 |------|--------|---------|
-| <a name="module_db"></a> [db](#module\_db) | git::https://github.com/cloudopsworks/terraform-module-postgres-management.git | v1.0.7 |
-| <a name="module_tags"></a> [tags](#module\_tags) | cloudopsworks/tags/local | 1.0.9 |
+| <a name="module_db"></a> [db](#module\_db) | git::https://github.com/cloudopsworks/terraform-module-postgres-management.git | v1.1.0 |
+| <a name="module_tags"></a> [tags](#module\_tags) | cloudopsworks/tags/local | 1.0.10 |
 
 ## Resources
 
@@ -34,6 +34,7 @@
 | [aws_secretsmanager_secret_version.owner_rotated](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/secretsmanager_secret_version) | resource |
 | [aws_secretsmanager_secret_version.user](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/secretsmanager_secret_version) | resource |
 | [aws_secretsmanager_secret_version.user_rotated](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/secretsmanager_secret_version) | resource |
+| [aws_caller_identity.current](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/caller_identity) | data source |
 | [aws_db_instance.db](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/db_instance) | data source |
 | [aws_db_instance.hoop_db_server](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/db_instance) | data source |
 | [aws_lambda_function.rotation_function](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/lambda_function) | data source |
@@ -67,6 +68,10 @@
 | <a name="input_rotation_duration"></a> [rotation\_duration](#input\_rotation\_duration) | Duration of the lambda function to rotate the password | `string` | `"1h"` | no |
 | <a name="input_rotation_lambda_name"></a> [rotation\_lambda\_name](#input\_rotation\_lambda\_name) | Name of the lambda function to rotate the password | `string` | `""` | no |
 | <a name="input_secrets_kms_key_id"></a> [secrets\_kms\_key\_id](#input\_secrets\_kms\_key\_id) | (optional) KMS Key ID to use to encrypt data in this secret, can be ARN or KMS Alias | `string` | `null` | no |
+| <a name="input_secrets_recovery_window"></a> [secrets\_recovery\_window](#input\_secrets\_recovery\_window) | (optional) Default recovery window in days before a deleted secret is permanently removed. Use 0 to delete immediately, otherwise 7-30. Defaults to 30 | `number` | `30` | no |
+| <a name="input_secrets_replica_kms_key_id"></a> [secrets\_replica\_kms\_key\_id](#input\_secrets\_replica\_kms\_key\_id) | (optional) KMS Key ID used to encrypt replicated secrets, can be ARN or KMS Alias. Must reside in the replica region. Defaults to null (AWS managed key) | `string` | `null` | no |
+| <a name="input_secrets_replica_region"></a> [secrets\_replica\_region](#input\_secrets\_replica\_region) | (optional) Region to replicate every managed secret into. When null, no replica is created unless set per entity. Defaults to null | `string` | `null` | no |
+| <a name="input_specials_in_password"></a> [specials\_in\_password](#input\_specials\_in\_password) | (optional) Use special characters in generated owner/user passwords. When false, generated passwords are alphanumeric only. Defaults to true | `bool` | `true` | no |
 | <a name="input_spoke_def"></a> [spoke\_def](#input\_spoke\_def) | Spoke ID Number, must be a 3 digit number | `string` | `"001"` | no |
 | <a name="input_users"></a> [users](#input\_users) | Users and user attributes - see docs for example | `any` | `{}` | no |
 
@@ -74,6 +79,6 @@
 
 | Name | Description |
 |------|-------------|
-| <a name="output_hoop_connections"></a> [hoop\_connections](#output\_hoop\_connections) | n/a |
-| <a name="output_owners"></a> [owners](#output\_owners) | n/a |
-| <a name="output_users"></a> [users](#output\_users) | n/a |
+| <a name="output_hoop_connections"></a> [hoop\_connections](#output\_hoop\_connections) | Hoop database connection definitions generated for managed owners and users. |
+| <a name="output_owners"></a> [owners](#output\_owners) | Managed database owners and their Secrets Manager credential references. |
+| <a name="output_users"></a> [users](#output\_users) | Managed database users and their Secrets Manager credential references. |

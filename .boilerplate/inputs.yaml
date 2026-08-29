@@ -18,7 +18,12 @@
 #     inherit: true                              # (Optional) Inherit parent role privileges; default: true
 #     create_role: false                         # (Optional) Allow creating roles; default: false
 #     connection_limit: -1                       # (Optional) Connection limit; default: -1 (no limit)
-#     import: false                              # (Optional) Import existing user; default: false
+#     import: false                              # (Optional) Import existing user and its Secrets Manager secret; default: false
+#     secret:                                    # (Optional) Per-user Secrets Manager settings; module defaults apply when omitted
+#       recovery_window: 30                      # (Optional) 0 or 7-30 days; default: secrets_recovery_window
+#       replica:
+#         region: "us-west-2"                    # (Optional) Replica region; default: secrets_replica_region
+#         kms_key_id: "alias/key"                # (Optional) Replica KMS key; default: secrets_replica_kms_key_id
 #     hoop:                                      # (Optional) Hoop settings for the user
 #       access_control: []                       # (Optional) Hoop access control groups; default: []
 users: {}
@@ -51,7 +56,12 @@ roles: {}
 #     encoding: "UTF8"                           # (Optional) Encoding; default: "UTF8"
 #     allow_connections: true                    # (Optional) Allow connections; default: true
 #     alter_object_ownership: false              # (Optional) Alter object ownership; default: false
-#     import: false                              # (Optional) Import existing database; default: false
+#     import: false                              # (Optional) Import existing database, owner role, and owner secret; default: false
+#     secret:                                    # (Optional) Owner-secret settings when create_owner=true
+#       recovery_window: 30                      # (Optional) 0 or 7-30 days; default: secrets_recovery_window
+#       replica:
+#         region: "us-west-2"                    # (Optional) Replica region; default: secrets_replica_region
+#         kms_key_id: "alias/key"                # (Optional) Replica KMS key; default: secrets_replica_kms_key_id
 #     schemas:                                   # (Optional) Schemas to create
 #       - name: "schema_name"                    # (Required) Schema name
 #         owner: "schema_owner"                  # (Optional) Schema owner (user_ref or name)
@@ -111,6 +121,15 @@ password_rotation_period: 90
 # secrets_kms_key_id: null                      # (Optional) KMS Key ID/ARN/Alias for Secrets Manager encryption; default: null
 secrets_kms_key_id: null
 
+# secrets_recovery_window: 30                   # (Optional) Default secret recovery window: 0 or 7-30 days
+secrets_recovery_window: 30
+
+# secrets_replica_region: null                  # (Optional) Default cross-region replica region; null disables replication
+secrets_replica_region: null
+
+# secrets_replica_kms_key_id: null              # (Optional) Default replica-region KMS key; null uses AWS managed key
+secrets_replica_kms_key_id: null
+
 # rotation_lambda_name: ""                      # (Optional) Lambda function name for password rotation; default: ""
 rotation_lambda_name: ""
 
@@ -122,3 +141,6 @@ rotate_immediately: false
 
 # force_reset: false                            # (Optional) Force reset the password; default: false
 force_reset: false
+
+# specials_in_password: true                    # (Optional) Generate passwords with special characters; false is alphanumeric-only
+specials_in_password: true
